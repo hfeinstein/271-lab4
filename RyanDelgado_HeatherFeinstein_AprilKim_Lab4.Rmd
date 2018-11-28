@@ -59,17 +59,22 @@ library(Hmisc)
 library(ggplot2)
 library(lattice)
 library(plm)
+library(plyr)
 ```
 
 ```{r}
 load("driving.RData")
 
+head(data)
+desc
 ```
 
 2. How is the our dependent variable of interest *totfatrte* defined? What is the average of this variable in each of the years in the time period covered in this dataset? Estimate a linear regression model of *totfatrte* on a set of dummy variables for the years 1981 through 2004. What does this model explain? Describe what you find in this model. Did driving become safer over this period? Please provide a detailed explanation.
 
-```{r}
+*totfatrte* is defined as "nighttime fatalities per 100,000 population"
 
+```{r}
+ddply(data, .(year), summarize,  Total=mean(totfatrte))
 ```
 
 3. Expand your model in *Exercise 2* by adding variables *bac08, bac10, perse, sbprim, sbsecon, sl70plus, gdl, perc14_24, unem, vehicmilespc*, and perhaps *transformations of some or all of these variables*. Please explain carefully your rationale, which should be based on your EDA, behind any transformation you made. If no transformation is made, explain why transformation is not needed. How are the variables *bac8* and *bac10* defined? Interpret the coefficients on *bac8* and *bac10*. Do *per se laws* have a negative effect on the fatality rate? What about having a primary seat belt law? (Note that if a law was enacted sometime within a year the fraction of the year is recorded in place of the zero-one indicator.)
