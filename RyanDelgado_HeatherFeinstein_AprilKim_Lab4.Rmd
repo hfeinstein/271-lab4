@@ -30,7 +30,7 @@ output:
 
 * This lab can be completed in a group of up to 3 students in your session. Students are encouraged to work in a group for the lab.
 
-* For statistical methods that we cover in this course, use only the R libraries and functions that are covered in this course. If you use libraries and functions for statistical modeling that we have not covered, you have to provide (1) explanation of why such libraries and functions are used instead and (2) reference to the library documentation. Lacking the explanation and reference to the documentation will result in a score of zero for the corresponding question.
+* For statistical methods that we cover in this course, use only the R libraries and functions that are covered in this course. If you use libraries and functions for statistical modeling that we have not covered, you have to provide (1) explanation of why such libraries and functions are used instead and (2) reference to the suppressWarnings(suppressMessages(library documentation. Lacking the explanation and reference to the documentation will result in a score of zero for the corresponding question.
 
 * Students are expected to act with regards to UC Berkeley Academic Integrity.
 
@@ -49,29 +49,96 @@ Specifically, this data set contains data for the 48 continental U.S. states fro
 
 ```{r}
 # Insert the function to *tidy up* the code when they are printed out
-library(knitr)
+suppressWarnings(suppressMessages(library(knitr)))
 opts_chunk$set(tidy.opts=list(width.cutoff=60),tidy=TRUE)
 
 # Load libraries
-library(car)
-library(dplyr)
-library(Hmisc)
-library(ggplot2)
-library(lattice)
-library(plm)
-library(plyr)
+suppressWarnings(suppressMessages(library(car)))
+suppressWarnings(suppressMessages(library(dplyr)))
+suppressWarnings(suppressMessages(library(Hmisc)))
+suppressWarnings(suppressMessages(library(ggplot2)))
+suppressWarnings(suppressMessages(library(lattice)))
+suppressWarnings(suppressMessages(library(plm)))
+suppressWarnings(suppressMessages(library(plyr)))
 ```
 
 ```{r}
 load("driving.RData")
 
-head(data)
+head(data, 5)
 desc
+
+# each state has exactly 25 obsearvations -- panel is balanced
+min(table(data$state))
+max(table(data$state))
 ```
 
-```{r}
-scatterplot(totfatrte ~ year, boxplots=TRUE, data=data)
+```{r fig1, out.width = '45%', fig.show='hold', fig.align='center'}
+## viz variables to use
+#every state throughout the years:
+#totfartre, perc14_24, vehicmilespc and unem
+
+#distribution across diff state: 
+# seatbelt, zerotol, gdl, perse, bac08, bac01 and slXX variables
+
+# if "1" in bac10, set as 0.1; else set as "0" or "1" in bac08
+data$bac_combined <- ifelse(round(data$bac10) > 0, 0.1, 0.08*round(data$bac08))
+data$sl_combined <- ifelse(round(data$sl55) > 0, 55, ifelse(round(data$sl65) > 0, 65,
+                         ifelse(round(data$sl70) > 0, 70, ifelse(round(data$sl75) > 0, 75, 80))))
+
+ggplot(data, aes(x = year, y = bac_combined, group = state)) + 
+  geom_jitter(alpha = 0.3) + theme_bw() +
+  ggtitle("Blood alcohol limit")
+ggplot(data, aes(x = year, y = sl_combined, group = state)) + 
+  geom_jitter(alpha = 0.3) + theme_bw() +
+  ggtitle("Speed limit")
+
+# totfatrte: total fatalities per 100,000 population
+ggplot(data, aes(x = year, y = totfatrte, colour = as.factor(state))) +
+  geom_line(alpha = 0.7, show.legend = F) +
+  ggtitle("Total fatalities per 100,000 population") + theme_bw()
+
+# vehicmiles               vehicle miles traveled, billions
+ggplot(data, aes(x = year, y = vehicmiles, colour = as.factor(state))) +
+  geom_line(alpha = 0.7, show.legend = F) +
+  ggtitle("Vehicle miles traveled, billions") + theme_bw()
+
+# unem                     unemployment rate, percent
+ggplot(data, aes(x = year, y = unem, colour = as.factor(state))) +
+  geom_line(alpha = 0.7, show.legend = F) +
+  ggtitle("Unemployment rate, percent") + theme_bw()
+
+# perc14_24          percent population aged 14 through 24
+ggplot(data, aes(x = year, y = perc14_24, colour = as.factor(state))) +
+  geom_line(alpha = 0.7, show.legend = F) +
+  ggtitle("Percent population aged 14 through 24") + theme_bw()
+
+par(mfrow=c(2,2))
+hist(data$totfatrte)
+hist(data$perc14_24)
+hist(data$vehicmilespc)
+hist(data$unem)
+
+ggplot(data, aes(x = year, y = totfatrte, group = as.factor(state))) +
+  geom_boxplot() +
+  ggtitle("Total fatalities per 100,000 population") + theme_bw()
+
+#ryan's plot
+ggplot(data, aes(as.factor(year), totfatrte)) +
+ geom_boxplot() +
+ ggtitle('Total Fatalities by Year') +
+ xlab('Year') + ylab('Total Fatalities') +
+ theme(axis.text.x = element_text(angle = 45, hjust = 1.2))
 ```
+- blood alcohol limit was 0.1 in the 80s; starting in mid 80s reduced to 0.08 as well as set zero to 0.08
+- speed limit increased with time
+
+- decrease in total fatality from 1980 to 1985; remained roughly constant post 1985
+- positive linear trend in vehicles miles traveled
+- increase in unemployment rate in early 80s followed by decrease until early 90s; steady decrease from mid 90s
+- rapid decrease in percent population aged 14 through 24 until early 90s; remained constant afterwards
+- observe some degree of skewness and may need to transform (histogram)
+- large differences in distribution of total fatality rate between states
 
 2. How is the our dependent variable of interest *totfatrte* defined? What is the average of this variable in each of the years in the time period covered in this dataset? Estimate a linear regression model of *totfatrte* on a set of dummy variables for the years 1981 through 2004. What does this model explain? Describe what you find in this model. Did driving become safer over this period? Please provide a detailed explanation.
 
