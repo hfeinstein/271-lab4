@@ -140,6 +140,15 @@ ggplot(data, aes(as.factor(year), totfatrte)) +
 - observe some degree of skewness and may need to transform (histogram)
 - large differences in distribution of total fatality rate between states
 
+```{r}
+df$slhigh <- (df$sl70plus == 1)
+ggplot(df, aes(x=as.factor(slhigh), y=totfatrte)) + 
+  geom_boxplot() +
+  ggtitle('Total Fatalities between states that have high vs low speed limit') +
+  scale_x_discrete(labels=c('Low', 'High')) +
+  xlab('Speed limit level') + ylab('Fatalities per 100k population')
+```
+
 2. How is the our dependent variable of interest *totfatrte* defined? What is the average of this variable in each of the years in the time period covered in this dataset? Estimate a linear regression model of *totfatrte* on a set of dummy variables for the years 1981 through 2004. What does this model explain? Describe what you find in this model. Did driving become safer over this period? Please provide a detailed explanation.
 
 *totfatrte* is defined as "nighttime fatalities per 100,000 population"
@@ -154,6 +163,8 @@ summary(mod1)
 ```
 
 This model suggests that driving got safer over the time period as each year has an increasing beta and all years are significant after 1981.
+
+The summary shows that the coefficients are estimated to be negative for each year after 1980, with the coefficients being statistically significant for all years except 1981. This corroborates the observations we made in the box plot of `totfatrte` over time. Does this mean that driving became safer over this time period? The answer to that question is multi-faceted - better driving habits, more/less speeding, frequency of drunk driving, car safety. \textcolor{red}{need to elaborate and reword this portion.}
 
 3. Expand your model in *Exercise 2* by adding variables *bac08, bac10, perse, sbprim, sbsecon, sl70plus, gdl, perc14_24, unem, vehicmilespc*, and perhaps *transformations of some or all of these variables*. Please explain carefully your rationale, which should be based on your EDA, behind any transformation you made. If no transformation is made, explain why transformation is not needed. How are the variables *bac8* and *bac10* defined? Interpret the coefficients on *bac8* and *bac10*. Do *per se laws* have a negative effect on the fatality rate? What about having a primary seat belt law? (Note that if a law was enacted sometime within a year the fraction of the year is recorded in place of the zero-one indicator.)
 
