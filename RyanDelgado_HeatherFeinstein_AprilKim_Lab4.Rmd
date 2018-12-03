@@ -60,6 +60,7 @@ suppressWarnings(suppressMessages(library(ggplot2)))
 suppressWarnings(suppressMessages(library(lattice)))
 suppressWarnings(suppressMessages(library(plm)))
 suppressWarnings(suppressMessages(library(plyr)))
+suppressWarnings(suppressMessages(library(corrplot)))
 ```
 
 ```{r}
@@ -162,8 +163,8 @@ ggplot(data, aes(x = year, y = sl_combined, group = state)) +
 Over time, speed limits have increased.
 
 ```{r fig8, out.width = '45%', fig.show='hold', fig.align='center'}
-df$slhigh <- (df$sl70plus == 1)
-ggplot(df, aes(x=as.factor(slhigh), y=totfatrte)) + 
+data$slhigh <- (data$sl70plus == 1)
+ggplot(data, aes(x=as.factor(slhigh), y=totfatrte)) + 
   geom_boxplot() +
   ggtitle('Total Fatalities between states that have high vs low speed limit') +
   scale_x_discrete(labels=c('Low', 'High')) +
@@ -239,7 +240,6 @@ ggplot(data, aes(x=as.factor(perseround), y=totfatrte)) +
   ggtitle('Per Se Law vs Fatalities') +
   xlab('Per Se Law') + ylab('Fatalities per 100k population')
 ```
-
 States with no per se laws have higher fatalities
 
 ```{r fig17, out.width = '45%', fig.show='hold', fig.align='center'}
@@ -292,6 +292,14 @@ ggplot(data, aes(x=as.factor(sbseconround), y=totfatrte)) +
 ```
 States with no seconday seatbelt law have higher fatlities.
 
+```{r}
+data1 <- data[,-(31:55)]
+data1 <- data1[,-(33:39)]
+m = cor(data1)
+corrplot(m, method="circle")
+```
+
+
 2. How is the our dependent variable of interest *totfatrte* defined? What is the average of this variable in each of the years in the time period covered in this dataset? Estimate a linear regression model of *totfatrte* on a set of dummy variables for the years 1981 through 2004. What does this model explain? Describe what you find in this model. Did driving become safer over this period? Please provide a detailed explanation.
 
 *totfatrte* is defined as "nighttime fatalities per 100,000 population"
@@ -329,13 +337,12 @@ bac10 is blood alcohol limit .10
 4. Reestimate the model from *Exercise 3* using a fixed effects (at the state level) model. How do the coefficients on *bac08, bac10, perse, and sbprim* compare with the pooled OLS estimates? Which set of estimates do you think is more reliable? What assumptions are needed in each of these models?  Are these assumptions reasonable in the current context?
 
 ```{r}
+
 ```
 
 5. Would you perfer to use a random effects model instead of the fixed effects model you built in *Exercise 4*? Please explain.
 
-```{r}
 
-```
 
 6. Suppose that *vehicmilespc*, the number of miles driven per capita, increases by $1,000$. Using the FE estimates, what is the estimated effect on *totfatrte*? Please interpret the estimate.
 
