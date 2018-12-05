@@ -43,42 +43,111 @@ In this lab, you are asked to answer the question **"Do changes in traffic laws 
 
 Specifically, this data set contains data for the 48 continental U.S. states from 1980 through 2004. Various driving laws are indicated in the data set, such as the alcohol level at which drivers are considered legally intoxicated. There are also indicators for “per se” laws—where licenses can be revoked without a trial—and seat belt laws. A few economics and demographic variables are also included. The description of the each of the variables in the dataset is come with the dataste.
 
+
+## Introduction
+
+\textcolor{red}{* Car accidents are bad}
+\textcolor{red}{* There many be changes to laws we can make to prevent them}
+\textcolor{red}{* This lab will examine how changes in traffic laws affect fatalities}
+\textcolor{red}{* The findings will have policy implications}
+
 **Exercises:**
 
 1. Load the data. Provide a description of the basic structure of the dataset, as we have done throughout the semester. Conduct a very thorough EDA, which should include both graphical and tabular techniques, on the dataset, including both the dependent variable *totfatrte* and the potential explanatory variables. You need to write a detailed narrative of your observations of your EDA. *Reminder: giving an "output dump" (i.e. providing a bunch of graphs and tables without description and hoping your audience will interpret them) will receive a zero in this exercise.*
 
-```{r}
-# Insert the function to *tidy up* the code when they are printed out
-suppressWarnings(suppressMessages(library(knitr)))
-opts_chunk$set(tidy.opts=list(width.cutoff=60),tidy=TRUE)
+```{r setup, include=FALSE}
+library(knitr)
+library(car)
+library(dplyr)
+library(Hmisc)
+library(ggplot2)
+library(lattice)
+library(plm)
+library(plyr)
+library(corrplot)
+library(gridExtra)
 
-# Load libraries
-suppressWarnings(suppressMessages(library(car)))
-suppressWarnings(suppressMessages(library(dplyr)))
-suppressWarnings(suppressMessages(library(Hmisc)))
-suppressWarnings(suppressMessages(library(ggplot2)))
-suppressWarnings(suppressMessages(library(lattice)))
-suppressWarnings(suppressMessages(library(plm)))
-suppressWarnings(suppressMessages(library(plyr)))
-suppressWarnings(suppressMessages(library(corrplot)))
+opts_chunk$set(tidy.opts=list(width.cutoff=60),tidy=TRUE)
 ```
+
+### Initial Examination
 
 ```{r}
 load("driving.RData")
 
 #view data and descriptions
-head(data, 5)
-desc
+str(data)
+print(paste('The number of NA values in the dataset is ', sum(is.na(data))))
 ```
-This data set is composed of 1200 observations of 56 variables. Variable 22, totfatrte, is our outcome variable of interest. Variables 31-55 are dummy variables indicating the year.
+
+**Notes:**
+
+* There are 1200 pooled observations in the dataset, with each observation having 56 variables. There are no instances of NA values in the data, indicating that we have a balanced panel dataset.
+* The variables can roughly be divided into several categories
+  * Dummy variables that indicate what laws are implemented in a particular state for a specific year, e.g. sl55-sl75, seatbelt.
+  * Non-discrete variables that measure fatality counts, and ratios of fatalities to the population. This includes our outcome variable of interest, `totfatrte`
+  * "Demographic" variables like `unem` (state unemployment rate), `perc14_24` (percentage of population aged 14 to 24).
+  * Dummy variables for each year in the panel.
+  * "Index" variables that indicate which year and state the data corresponds to (aptly named `year` and `state`).  
+
+We'll examine these different variable types separately in our EDA. 
+
+### Exploratory Data Analysis
+Let's start by looking at our outcome variable, `totfatrte`. We'll plot a histogram of this variable:
 
 ```{r}
-# test observiations per state
-min(table(data$state))
-max(table(data$state))
+ggplot(data, aes(x=totfatrte)) + 
+  geom_histogram(fill='darkgreen', color='black') +
+  ggtitle('Total Annual Fatalities per 100k')
 ```
 
-Each state has exactly 25 obsearvations -- panel is balanced.
+**Observations:**
+
+* We see that the dataset is skewed right. This is typical of zero-bounded variables.
+* There are a few cases where the fatalities are above 50 people per 100k. We will examine those in more detail to see if there's an explanation
+
+Let's look at the outlier observations:
+```{r}
+cols.wo.yrdummies <- c('year', 'state', 'sl55', 'sl65', 'sl70', 'sl75', 'slnone', 'seatbelt', 
+                       'minage', 'zerotol', 'gdl', 'bac10', 'bac08', 'perse', 'totfat', 
+                       'nghtfat', 'wkndfat', 'totfatpvm', 'nghtfatpvm', 'wkndfatpvm', 
+                       'statepop', 'totfatrte', 'nghtfatrte', 'wkndfatrte', 'vehicmiles', 
+                       'unem', 'perc14_24', 'sl70plus', 'sbprim', 'sbsecon')
+
+t(data[data$totfatrte > 50, cols.wo.yrdummies])
+```
+
+Both observations are in state 51 and occur in the early 1980s. It appears this state's 1980 population (~470k) is around 10% of the average state population that year (~4.67 million. This low state population could explain the large fatality ratios in those years. The other variables for this state in these years don't see particularly extreme. \textcolor{red}{reword?}
+
+\textclor{red}{need to find out what vehiclemilespc is...}
+
+Let's now look at histograms for `perc14_24`, `unem`, and `vehicmilespc`:
+
+```{r}
+perc.hist <- ggplot(data, aes(x=perc14_24)) + 
+  geom_histogram(color='black', fill='red') +
+  ggtitle('% Pop Aged 14-24')
+
+unem.hist <- ggplot(data, aes(x=unem)) + 
+  geom_histogram(color='black', fill='purple') +
+  ggtitle('Unemployment Rate')
+
+vehicpc.hist <- ggplot(data, aes(x=vehicmilespc)) + 
+  geom_histogram(color='black', fill='green') +
+  ggtitle('Idk what this variable means')
+
+grid.arrange(perc.hist, unem.hist, vehicpc.hist, ncol=3, nrow=1)
+```
+
+These distributions look fairly ordinary. Similar to the `totfatrte` histogram, we see right-ward skewness in the `unem` and `vehicmilespc`. \textcolor{red}{Any other commentary. Maybe we can talk about log transforming these variables to deal with the skewness? Is this a good enough reason to log transform?}
+
+
+Let's plot histograms of the discrete variables now: \textcolor{red}{gotta do this.}
+
+\textcolor{red}{Questions I want to answer in the EDA:}
+\textcolor{red}{-Do these variables change over time? if not, comment how they'd be eliminated in the panel models unless we interact them with year.}
+\textcolor{red}{-Is there enough variance in them to be good candidate EVs in the model?}
+\textcolor{red}{-Does anything stick out as needing a transformation? e.g. rounding. Explain why this is a good idea.}
 
 
 ```{r fig1, out.width = '45%', fig.show='hold', fig.align='center'}
@@ -309,18 +378,21 @@ corrplot(m, method="circle")
 ddply(data, .(year), summarize,  Total=mean(totfatrte))
 ```
 
+
+We'll estimate the linear regression model on the year dummies using the `totfatrte` column and the `year` column converted to a factor:
+
 ```{r}
 #linear model
 mod1 <- lm(totfatrte ~ factor(year) , data=data)
 summary(mod1)
 ```
 
-This model suggests that driving got safer over the time period as each year has an increasing beta and all years are significant after 1981.
-
 The summary shows that the coefficients are estimated to be negative for each year after 1980, with the coefficients being statistically significant for all years except 1981. This corroborates the observations we made in the box plot of `totfatrte` over time. Does this mean that driving became safer over this time period? The answer to that question is multi-faceted - better driving habits, more/less speeding, frequency of drunk driving, car safety. \textcolor{red}{need to elaborate and reword this portion.}
 
 3. Expand your model in *Exercise 2* by adding variables *bac08, bac10, perse, sbprim, sbsecon, sl70plus, gdl, perc14_24, unem, vehicmilespc*, and perhaps *transformations of some or all of these variables*. Please explain carefully your rationale, which should be based on your EDA, behind any transformation you made. If no transformation is made, explain why transformation is not needed. How are the variables *bac8* and *bac10* defined? Interpret the coefficients on *bac8* and *bac10*. Do *per se laws* have a negative effect on the fatality rate? What about having a primary seat belt law? (Note that if a law was enacted sometime within a year the fraction of the year is recorded in place of the zero-one indicator.)
 
+\textcolor{red}{Should we log transform unem, perc14_24, and vehicmilespc? TBD in our EDA. The other variables can stay the same, aside from rounding.}
+\textcolor{red}{Should we include a latex rendering of the model we'll estimate? We may score extra points by doing that...}
 ```{r}
 data$bac08round = round(data$bac08)
 data$bac10round = round(data$bac10)
@@ -337,6 +409,21 @@ bac10 is blood alcohol limit .10
 4. Reestimate the model from *Exercise 3* using a fixed effects (at the state level) model. How do the coefficients on *bac08, bac10, perse, and sbprim* compare with the pooled OLS estimates? Which set of estimates do you think is more reliable? What assumptions are needed in each of these models?  Are these assumptions reasonable in the current context?
 
 ```{r}
+data$bac08round <- round(data$bac08)
+data$bac10round <- round(data$bac10)
+data$sl70plusround <- round(data$sl70plus)
+data$perseround <- round(data$perse)
+data$sbprimround <- round(data$sbprim)
+data$sbseconround = round(data$sbsecon)
+data$gdlround = round(data$gdl)
+
+model.fe <- plm(totfatrte ~ factor(year) + bac08round + bac10round + 
+                perseround + sbprimround + sbseconround + sl70plusround +
+                gdlround + perc14_24 + unem + vehicmilespc, 
+                data=data, 
+                index=c('state', 'year'), model='within')
+
+summary(model.fe)
 
 ```
 
