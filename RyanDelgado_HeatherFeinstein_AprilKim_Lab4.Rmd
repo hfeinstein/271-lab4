@@ -4,7 +4,6 @@ author: "Heather Feinstein, Ryan Delgado, April Kim"
 date: "Fall 2018"
 output:
   pdf_document: default
-  html_notebook: default
 ---
 
 # Instructions:
@@ -119,7 +118,8 @@ t(data[data$totfatrte > 50, cols.wo.yrdummies])
 
 Both observations are in state 51 and occur in the early 1980s. It appears this state's 1980 population (~470k) is around 10% of the average state population that year (~4.67 million. This low state population could explain the large fatality ratios in those years. The other variables for this state in these years don't see particularly extreme. \textcolor{red}{reword?}
 
-\textclor{red}{need to find out what vehiclemilespc is...}
+\textcolor{red}{need to find out what vehiclemilespc is... }
+\textcolor{blue}{A: vehicle miles per capita; decimal}
 
 Let's now look at histograms for `perc14_24`, `unem`, and `vehicmilespc`:
 
@@ -194,13 +194,6 @@ ggplot(data, aes(x = year, y = totfatrte, colour = as.factor(state))) +
 Total fatalities decreased from 1980 to 1985 and remained roughly constant post 1985.
 
 ```{r}
-## viz variables to use
-#every state throughout the years:
-#totfartre, perc14_24, vehicmilespc and unem
-
-#distribution across diff state: 
-# seatbelt, zerotol, gdl, perse, bac08, bac01 and slXX variables
-
 # if "1" in bac10, set as 0.1; else set as "0" or "1" in bac08
 data$bac_combined <- ifelse(round(data$bac10) > 0, 0.1, 0.08*round(data$bac08))
 data$sl_combined <- ifelse(round(data$sl55) > 0, 55, ifelse(round(data$sl65) > 0, 65,
@@ -389,16 +382,21 @@ summary(mod1)
 
 The summary shows that the coefficients are estimated to be negative for each year after 1980, with the coefficients being statistically significant for all years except 1981. This corroborates the observations we made in the box plot of `totfatrte` over time. Does this mean that driving became safer over this time period? The answer to that question is multi-faceted - better driving habits, more/less speeding, frequency of drunk driving, car safety. \textcolor{red}{need to elaborate and reword this portion.}
 
-3. Expand your model in *Exercise 2* by adding variables *bac08, bac10, perse, sbprim, sbsecon, sl70plus, gdl, perc14_24, unem, vehicmilespc*, and perhaps *transformations of some or all of these variables*. Please explain carefully your rationale, which should be based on your EDA, behind any transformation you made. If no transformation is made, explain why transformation is not needed. How are the variables *bac8* and *bac10* defined? Interpret the coefficients on *bac8* and *bac10*. Do *per se laws* have a negative effect on the fatality rate? What about having a primary seat belt law? (Note that if a law was enacted sometime within a year the fraction of the year is recorded in place of the zero-one indicator.)
+3. Expand your model in *Exercise 2* by adding variables *bac08, bac10, perse, sbprim, sbsecon, sl70plus, gdl, perc14_24, unem, vehicmilespc*, and perhaps *transformations of some or all of these variables*. Please explain carefully your rationale, which should be based on your EDA, behind any transformation you made. If no transformation is made, explain why transformation is not needed. How are the variables *bac8* and *bac10* defined? Interpret the coefficients on *bac8* and *bac10*. Do *per se laws* have a negative effect on the fatality rate? What about having a primary seat belt law? (Note that if a law was enacted sometime within a year the fraction of the year is recorded in place of the zero-one indicator.)  
 
-\textcolor{red}{Should we log transform unem, perc14_24, and vehicmilespc? TBD in our EDA. The other variables can stay the same, aside from rounding.}
-\textcolor{red}{Should we include a latex rendering of the model we'll estimate? We may score extra points by doing that...}
+\textcolor{blue}{I think we should log transform unem}
+\textcolor{red}{Should we include a latex rendering of the model we'll estimate? We may score extra points by doing that... }
+\textcolor{blue}{yesssss we def should}
+
 ```{r}
 data$bac08round = round(data$bac08)
 data$bac10round = round(data$bac10)
 data$sl70plusround = round(data$sl70plus)
 
-mod2 <- lm(totfatrte ~ factor(year) + bac08round + bac10round + perseround + sbprimround + sbseconround + sl70plusround + gdlround + perc14_24 + unem + vehicmilespc, data=data)
+mod2 <- lm(totfatrte ~ factor(year) + bac08round + bac10round + 
+             perseround + sbprimround + sbseconround + sl70plusround +
+             gdlround + perc14_24 + log(unem) + vehicmilespc, 
+           data=data)
 
 summary(mod2)
 ```
@@ -419,7 +417,7 @@ data$gdlround = round(data$gdl)
 
 model.fe <- plm(totfatrte ~ factor(year) + bac08round + bac10round + 
                 perseround + sbprimround + sbseconround + sl70plusround +
-                gdlround + perc14_24 + unem + vehicmilespc, 
+                gdlround + perc14_24 + log(unem) + vehicmilespc, 
                 data=data, 
                 index=c('state', 'year'), model='within')
 
@@ -429,20 +427,36 @@ summary(model.fe)
 
 5. Would you perfer to use a random effects model instead of the fixed effects model you built in *Exercise 4*? Please explain.
 
+To determine whether random effects model should be used over the fixed effects model, we can conducts a Hausman test with the null hypothesis that the preferred model is random effects. 
 
+```{r}
+model.re <- plm(totfatrte ~ factor(year) + bac08round + bac10round + 
+                perseround + sbprimround + sbseconround + sl70plusround +
+                gdlround + perc14_24 + log(unem) + vehicmilespc, 
+                data=data, 
+                index=c('state', 'year'), model='random')
+phtest(model.fe, model.re)
+```
+
+With the p-value < 2.2e-16, we can reject the null hypothesis that the random effects assumptions are correct and we would prefer to use the fixed effects model.
 
 6. Suppose that *vehicmilespc*, the number of miles driven per capita, increases by $1,000$. Using the FE estimates, what is the estimated effect on *totfatrte*? Please interpret the estimate.
 
-```{r}
+According to our fixed effect model, the coefficient for $vehicmilespc$ variable was 0.000951 fatalities/100k people per mile driven per capita. For all other things held equal, if, on average, there's an increase of 1,000 miles driven per capita, we would expect an increase of 0.951 (approximately 1) fatalities per 100k people. 
 
+
+```{r}
 ```
 
 7. If there is serial correlation or heteroskedasticity in the idiosyncratic errors of the model, what would be the consequences on the estimators and their standard errors?
 
+The fixed effects model assumes that the idiosyncratic errors are uncorrelated. If there is serial correlation in the model errors, the estimated variance will be biased which will result in underestimated standard errors and thus rending most statistical tests invalid. This would most likely commit Type I error, and reject the null hypothesis too easily. 
+
+Heteroskedasticity in the idiosyncratic errors would result in overstated standard errors and may commit Type II error. We may fail to reject the null hypothesis since significance of potentially valuable regressor will not be detected. 
+
 ```{r}
 
 ```
-
 
 
 
