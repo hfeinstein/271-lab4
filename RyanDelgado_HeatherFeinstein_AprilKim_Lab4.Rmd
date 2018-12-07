@@ -45,10 +45,7 @@ Specifically, this data set contains data for the 48 continental U.S. states fro
 
 ## Introduction
 
-\textcolor{red}{* Car accidents are bad}
-\textcolor{red}{* There many be changes to laws we can make to prevent them}
-\textcolor{red}{* This lab will examine how changes in traffic laws affect fatalities}
-\textcolor{red}{* The findings will have policy implications}
+Over the years indiviual states have enacted many laws to to help prevent car accident deaths ranging from restricting driver alcohol intake to mandating seatbelts for passengers. These laws have been effective to vary degrees and have often corresponded with demographic changes that make effects more difficult to parse. Determing the effectiveness of driving laws has far reaching policy implications.
 
 **Exercises:**
 
@@ -74,20 +71,25 @@ opts_chunk$set(tidy.opts=list(width.cutoff=60),tidy=TRUE)
 ```{r}
 load("driving.RData")
 
-#view data and descriptions
-str(data)
+#view data and count NA
+head(data)
 print(paste('The number of NA values in the dataset is ', sum(is.na(data))))
+```
+
+```{r}
+#variable definitions
+desc
 ```
 
 **Notes:**
 
 * There are 1200 pooled observations in the dataset, with each observation having 56 variables. There are no instances of NA values in the data, indicating that we have a balanced panel dataset.
-* The variables can roughly be divided into several categories
-  * Dummy variables that indicate what laws are implemented in a particular state for a specific year, e.g. sl55-sl75, seatbelt.
-  * Non-discrete variables that measure fatality counts, and ratios of fatalities to the population. This includes our outcome variable of interest, `totfatrte`
-  * "Demographic" variables like `unem` (state unemployment rate), `perc14_24` (percentage of population aged 14 to 24).
-  * Dummy variables for each year in the panel.
-  * "Index" variables that indicate which year and state the data corresponds to (aptly named `year` and `state`).  
+* The variables can roughly be divided into several categories:
+      1) Dummy variables hat indicate what laws are implemented in a particular state for a specific 
+      2) Dummy variables for each year in the panel.
+      3) Continuous variables that measure fatality counts, and ratios of fatalities to the population. This includes our outcome variable of interest, `totfatrte`
+      4)  Continuous demographic variables like `unem` (state unemployment rate), `perc14_24` (percentage of population aged 14 to 24).
+      5) "Index" variables that indicate which year and state the data corresponds to (aptly named `year` and `state`).  
 
 We'll examine these different variable types separately in our EDA. 
 
@@ -116,46 +118,115 @@ cols.wo.yrdummies <- c('year', 'state', 'sl55', 'sl65', 'sl70', 'sl75', 'slnone'
 t(data[data$totfatrte > 50, cols.wo.yrdummies])
 ```
 
-Both observations are in state 51 and occur in the early 1980s. It appears this state's 1980 population (~470k) is around 10% of the average state population that year (~4.67 million. This low state population could explain the large fatality ratios in those years. The other variables for this state in these years don't see particularly extreme. \textcolor{red}{reword?}
+Both observations are in state 51 and occur in the early 1980s. It appears this state's 1980 population (~470k) is around 10% of the average state population that year (~4.67 million. This low state population could explain the large fatality ratios in those years. The other variables for this state in these years don't look particularly noteworthy.
 
-\textcolor{red}{need to find out what vehiclemilespc is... }
-\textcolor{blue}{A: vehicle miles per capita; decimal}
+Now lets look at total fatalities over time.
+
+```{r fig3, out.width = '45%', fig.show='hold', fig.align='center'}
+ggplot(data, aes(as.factor(year), totfatrte)) +
+ geom_boxplot() +
+ ggtitle('Total Fatalities by Year') +
+ xlab('Year') + ylab('Total Fatalities') +
+ theme(axis.text.x = element_text(angle = 45, hjust = 1.2))
+```
+
+Total fatalities have declined gradually but not steadily since the 80s. However the variance across states remains fairly steady.
+
+Let's see how the states are concentrated.
+
+```{r fig4, out.width = '45%', fig.show='hold', fig.align='center'}
+# totfatrte: total fatalities per 100,000 population
+ggplot(data, aes(x = year, y = totfatrte, colour = as.factor(state))) +
+  geom_line(alpha = 0.7, show.legend = F) +
+  ggtitle("Total fatalities per 100,000 population") + theme_bw()
+```
+
+The states are fairly concentrated and the outliers tend to fall on the high rather than the low side.
 
 Let's now look at histograms for `perc14_24`, `unem`, and `vehicmilespc`:
 
 ```{r}
-perc.hist <- ggplot(data, aes(x=perc14_24)) + 
-  geom_histogram(color='black', fill='red') +
-  ggtitle('% Pop Aged 14-24')
+vehicpc.hist <- ggplot(data, aes(x=vehicmilespc)) + 
+  geom_histogram(color='black', fill='green') +
+  ggtitle('Vehicle Miles Per Capita')
 
 unem.hist <- ggplot(data, aes(x=unem)) + 
   geom_histogram(color='black', fill='purple') +
   ggtitle('Unemployment Rate')
 
-vehicpc.hist <- ggplot(data, aes(x=vehicmilespc)) + 
-  geom_histogram(color='black', fill='green') +
-  ggtitle('Idk what this variable means')
+perc.hist <- ggplot(data, aes(x=perc14_24)) + 
+  geom_histogram(color='black', fill='red') +
+  ggtitle('% Pop Aged 14-24')
 
 grid.arrange(perc.hist, unem.hist, vehicpc.hist, ncol=3, nrow=1)
 ```
 
 These distributions look fairly ordinary. Similar to the `totfatrte` histogram, we see right-ward skewness in the `unem` and `vehicmilespc`. \textcolor{red}{Any other commentary. Maybe we can talk about log transforming these variables to deal with the skewness? Is this a good enough reason to log transform?}
 
-
-Let's plot histograms of the discrete variables now: \textcolor{red}{gotta do this.}
-
 \textcolor{red}{Questions I want to answer in the EDA:}
 \textcolor{red}{-Do these variables change over time? if not, comment how they'd be eliminated in the panel models unless we interact them with year.}
 \textcolor{red}{-Is there enough variance in them to be good candidate EVs in the model?}
 \textcolor{red}{-Does anything stick out as needing a transformation? e.g. rounding. Explain why this is a good idea.}
 
+```{r fig9, out.width = '45%', fig.show='hold', fig.align='center'}
+# vehicmiles               vehicle miles traveled, billions
+ggplot(data, aes(x = year, y = vehicmilespc, colour = as.factor(state))) +
+  geom_line(alpha = 0.7, show.legend = F) +
+  ggtitle("Vehicle miles traveled per capita") + theme_bw()
+```
+Miles traveled per capita have increased over time.
+
+```{r fig10, out.width = '45%', fig.show='hold', fig.align='center'}
+ggplot(data, aes(x=vehicmilespc, y=totfatrte)) + 
+  geom_point() +
+  geom_smooth(method=lm) +
+  ggtitle('Vehicle miles travelled per capita vs Fatalities') +
+  xlab('Vehicle miles travelled') + ylab('Fatalities per 100k population') 
+```
+More miles travelled per capita correlates with more fatalities. 
+
+```{r fig11, out.width = '45%', fig.show='hold', fig.align='center'}
+# unem            unemployment rate, percent
+ggplot(data, aes(x = year, y = unem, colour = as.factor(state))) +
+  geom_line(alpha = 0.7, show.legend = F) +
+  ggtitle("Unemployment rate, percent") + theme_bw()
+```
+
+Unemployment peaked in early 80s followed by decrease until early 90s; steady decrease from mid 90s.
+
+```{r fig12, out.width = '45%', fig.show='hold', fig.align='center'}
+ggplot(data, aes(x=unem, y=totfatrte)) + 
+  geom_point() +
+  geom_smooth(method=lm) +
+  ggtitle('Unemployement vs Fatalities') +
+  xlab('Unemployment Rate') + ylab('Fatalities per 100k population') 
+```
+
+Higher unemployment correlates with more fatalities.
+
+```{r fig13, out.width = '45%', fig.show='hold', fig.align='center'}
+# perc14_24          percent population aged 14 through 24
+ggplot(data, aes(x = year, y = perc14_24, colour = as.factor(state))) +
+  geom_line(alpha = 0.7, show.legend = F) +
+  ggtitle("Percent population aged 14 through 24") + theme_bw()
+```
+
+Rapid decrease in percent population aged 14 through 24 until early 90s; slight increase afterwards.
+
+```{r fig14, out.width = '45%', fig.show='hold', fig.align='center'}
+ggplot(data, aes(x=perc14_24, y=totfatrte)) + 
+  geom_point() +
+  geom_smooth(method=lm) +
+  ggtitle('Percent of Pop 14-24 vs Fatalities') +
+  xlab('Percent of Pop 14-24') + ylab('Fatalities per 100k population') 
+```
+
+Higher percent of population 14-24 correlates with more fatalities.
+
+Next lets examine our binary variables.
 
 ```{r fig1, out.width = '45%', fig.show='hold', fig.align='center'}
 par(mfrow=c(2,2))
-hist(data$totfatrte)
-hist(data$perc14_24)
-hist(data$vehicmilespc)
-hist(data$unem)
 hist(data$bac08) 
 hist(data$bac10) 
 hist(data$perse) 
@@ -166,32 +237,6 @@ hist(data$gdl)
 ```
 
 Variables displays some degree of skewness and may need to transform. Additionally, some variables that appear to be binary have values between 0 and 1 to indicate mid year changes. We will round these variables.
-
-```{r fig2, out.width = '45%', fig.show='hold', fig.align='center'}
-ggplot(data, aes(x = year, y = totfatrte, group = as.factor(state))) +
-  geom_boxplot() +
-  ggtitle("Total fatalities per 100,000 population") + theme_bw()
-```
-
-States display a large difference in distribution of total fatality rate.
-
-```{r fig3, out.width = '45%', fig.show='hold', fig.align='center'}
-#ryan's plot
-ggplot(data, aes(as.factor(year), totfatrte)) +
- geom_boxplot() +
- ggtitle('Total Fatalities by Year') +
- xlab('Year') + ylab('Total Fatalities') +
- theme(axis.text.x = element_text(angle = 45, hjust = 1.2))
-```
-
-```{r fig4, out.width = '45%', fig.show='hold', fig.align='center'}
-# totfatrte: total fatalities per 100,000 population
-ggplot(data, aes(x = year, y = totfatrte, colour = as.factor(state))) +
-  geom_line(alpha = 0.7, show.legend = F) +
-  ggtitle("Total fatalities per 100,000 population") + theme_bw()
-```
-
-Total fatalities decreased from 1980 to 1985 and remained roughly constant post 1985.
 
 ```{r}
 # if "1" in bac10, set as 0.1; else set as "0" or "1" in bac08
@@ -233,61 +278,6 @@ ggplot(data, aes(x=as.factor(slhigh), y=totfatrte)) +
   xlab('Speed limit level') + ylab('Fatalities per 100k population')
 ```
 
-```{r fig9, out.width = '45%', fig.show='hold', fig.align='center'}
-# vehicmiles               vehicle miles traveled, billions
-ggplot(data, aes(x = year, y = vehicmiles, colour = as.factor(state))) +
-  geom_line(alpha = 0.7, show.legend = F) +
-  ggtitle("Vehicle miles traveled, billions") + theme_bw()
-```
-Miles traveled have increased over time.
-
-```{r fig10, out.width = '45%', fig.show='hold', fig.align='center'}
-ggplot(data, aes(x=vehicmilespc, y=totfatrte)) + 
-  geom_point() +
-  geom_smooth(method=lm) +
-  ggtitle('Vehicle miles travelled vs Fatalities') +
-  xlab('Vehicle miles travelled') + ylab('Fatalities per 100k population') 
-```
-More miles travelled correlates with more fatalities.
-
-```{r fig11, out.width = '45%', fig.show='hold', fig.align='center'}
-# unem            unemployment rate, percent
-ggplot(data, aes(x = year, y = unem, colour = as.factor(state))) +
-  geom_line(alpha = 0.7, show.legend = F) +
-  ggtitle("Unemployment rate, percent") + theme_bw()
-```
-
-Increase in unemployment rate in early 80s followed by decrease until early 90s; steady decrease from mid 90s.
-
-```{r fig12, out.width = '45%', fig.show='hold', fig.align='center'}
-ggplot(data, aes(x=unem, y=totfatrte)) + 
-  geom_point() +
-  geom_smooth(method=lm) +
-  ggtitle('Unemployement vs Fatalities') +
-  xlab('Unemployment Rate') + ylab('Fatalities per 100k population') 
-```
-
-Higher unemployment correlates with more fatalities.
-
-```{r fig13, out.width = '45%', fig.show='hold', fig.align='center'}
-# perc14_24          percent population aged 14 through 24
-ggplot(data, aes(x = year, y = perc14_24, colour = as.factor(state))) +
-  geom_line(alpha = 0.7, show.legend = F) +
-  ggtitle("Percent population aged 14 through 24") + theme_bw()
-```
-
-Rapid decrease in percent population aged 14 through 24 until early 90s; slight increase afterwards.
-
-```{r fig14, out.width = '45%', fig.show='hold', fig.align='center'}
-ggplot(data, aes(x=perc14_24, y=totfatrte)) + 
-  geom_point() +
-  geom_smooth(method=lm) +
-  ggtitle('Percent of Pop 14-24 vs Fatalities') +
-  xlab('Percent of Pop 14-24') + ylab('Fatalities per 100k population') 
-```
-
-Higher percent of population 14-24 correlates with more fatalities.
-
 ```{r fig15, out.width = '45%', fig.show='hold', fig.align='center'}
 data$perseround = round(data$perse)
 ggplot(data, aes(x = year, y = perseround, group = state)) + 
@@ -302,7 +292,7 @@ ggplot(data, aes(x=as.factor(perseround), y=totfatrte)) +
   ggtitle('Per Se Law vs Fatalities') +
   xlab('Per Se Law') + ylab('Fatalities per 100k population')
 ```
-States with no per se laws have higher fatalities
+States with no per se laws have higher fatalities.
 
 ```{r fig17, out.width = '45%', fig.show='hold', fig.align='center'}
 data$gdlround = round(data$gdl)
@@ -352,25 +342,16 @@ ggplot(data, aes(x=as.factor(sbseconround), y=totfatrte)) +
   ggtitle('Secondary Seatbelt Law vs Fatalities') +
   xlab('Secondary Seatbelt Law') + ylab('Fatalities per 100k population')
 ```
-States with no seconday seatbelt law have higher fatlities.
-
-```{r}
-data1 <- data[,-(31:55)]
-data1 <- data1[,-(33:39)]
-m = cor(data1)
-corrplot(m, method="circle")
-```
-
+States with no seconday seatbelt law have higher fatlities but the difference is less than the primary seatbelt laes.
 
 2. How is the our dependent variable of interest *totfatrte* defined? What is the average of this variable in each of the years in the time period covered in this dataset? Estimate a linear regression model of *totfatrte* on a set of dummy variables for the years 1981 through 2004. What does this model explain? Describe what you find in this model. Did driving become safer over this period? Please provide a detailed explanation.
 
-*totfatrte* is defined as "nighttime fatalities per 100,000 population"
+*totfatrte* is defined as "fatalities per 100,000 population"
 
 ```{r}
 #avg per year covered in data set
 ddply(data, .(year), summarize,  Total=mean(totfatrte))
 ```
-
 
 We'll estimate the linear regression model on the year dummies using the `totfatrte` column and the `year` column converted to a factor:
 
@@ -382,7 +363,7 @@ summary(mod1)
 
 The summary shows that the coefficients are estimated to be negative for each year after 1980, with the coefficients being statistically significant for all years except 1981. This corroborates the observations we made in the box plot of `totfatrte` over time. Does this mean that driving became safer over this time period? The answer to that question is multi-faceted - better driving habits, more/less speeding, frequency of drunk driving, car safety. \textcolor{red}{need to elaborate and reword this portion.}
 
-3. Expand your model in *Exercise 2* by adding variables *bac08, bac10, perse, sbprim, sbsecon, sl70plus, gdl, perc14_24, unem, vehicmilespc*, and perhaps *transformations of some or all of these variables*. Please explain carefully your rationale, which should be based on your EDA, behind any transformation you made. If no transformation is made, explain why transformation is not needed. How are the variables *bac8* and *bac10* defined? Interpret the coefficients on *bac8* and *bac10*. Do *per se laws* have a negative effect on the fatality rate? What about having a primary seat belt law? (Note that if a law was enacted sometime within a year the fraction of the year is recorded in place of the zero-one indicator.)  
+3. Expand your model in *Exercise 2* by adding variables *bac08, bac10, perse, sbprim, sbsecon, sl70plus, gdl, perc14_24, unem, vehicmilespc*, and perhaps *transformations of some or all of these variables*. Please explain carefully your rationale, which should be based on your EDA, behind any transformation you made. If no transformation is made, explain why transformation is not needed. How are the variables *bac8* and *bac10* defined? Interpret the coefficients on *bac8* and *bac10*. Do *per se laws* have a negative effect on the fatality rate? What about having a primary seat belt law? (Note that if a law was enacted sometime within a year the fraction of the year is recorded in place of the zero-one indicator.) 
 
 \textcolor{blue}{I think we should log transform unem}
 \textcolor{red}{Should we include a latex rendering of the model we'll estimate? We may score extra points by doing that... }
@@ -403,6 +384,8 @@ summary(mod2)
 
 bac8 is blood alcohol limit .08
 bac10 is blood alcohol limit .10
+
+This model indicates that in addition to years, blood alcohol limis of either .08 or .1 have a significant impact decreasing fatalities in car accidents. Further, it indicates that speed limits over 70, high unemployment, and high vehicle miles per capita have significant impact increasing fatalities from car accidents. 
 
 4. Reestimate the model from *Exercise 3* using a fixed effects (at the state level) model. How do the coefficients on *bac08, bac10, perse, and sbprim* compare with the pooled OLS estimates? Which set of estimates do you think is more reliable? What assumptions are needed in each of these models?  Are these assumptions reasonable in the current context?
 
@@ -444,19 +427,12 @@ With the p-value < 2.2e-16, we can reject the null hypothesis that the random ef
 
 According to our fixed effect model, the coefficient for $vehicmilespc$ variable was 0.000951 fatalities/100k people per mile driven per capita. For all other things held equal, if, on average, there's an increase of 1,000 miles driven per capita, we would expect an increase of 0.951 (approximately 1) fatalities per 100k people. 
 
-
-```{r}
-```
-
 7. If there is serial correlation or heteroskedasticity in the idiosyncratic errors of the model, what would be the consequences on the estimators and their standard errors?
 
 The fixed effects model assumes that the idiosyncratic errors are uncorrelated. If there is serial correlation in the model errors, the estimated variance will be biased which will result in underestimated standard errors and thus rending most statistical tests invalid. This would most likely commit Type I error, and reject the null hypothesis too easily. 
 
 Heteroskedasticity in the idiosyncratic errors would result in overstated standard errors and may commit Type II error. We may fail to reject the null hypothesis since significance of potentially valuable regressor will not be detected. 
 
-```{r}
-
-```
 
 
 
