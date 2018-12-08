@@ -45,7 +45,7 @@ Specifically, this data set contains data for the 48 continental U.S. states fro
 
 ## Introduction
 
-Over the years indiviual states have enacted many laws to to help prevent car accident deaths ranging from restricting driver alcohol intake to mandating seatbelts for passengers. These laws have been effective to vary degrees and have often corresponded with demographic changes that make effects more difficult to parse. Determing the effectiveness of driving laws has far reaching policy implications.
+Over the years, individual states have enacted many laws to to help prevent car accident deaths ranging from restricting driver alcohol intake to mandating seatbelts for passengers. These laws have been effective to varying degrees and have often corresponded with demographic changes that make effects more difficult to parse. Determing the effectiveness of driving laws has far reaching policy implications. This lab will explore how different traffic laws among US states and the changes in these laws over times have affected traffic fatalities. We'll explore a dataset of traffic laws and fatalities for the 48 contiguous US states, and apply panel regression techniques to this dataset to find relationships between traffic laws and fatalities.
 
 **Exercises:**
 
@@ -84,11 +84,11 @@ desc
 **Notes:**
 
 * There are 1200 pooled observations in the dataset, with each observation having 56 variables. There are no instances of NA values in the data, indicating that we have a balanced panel dataset.
-* The variables can roughly be divided into several categories:
-      1) Dummy variables hat indicate what laws are implemented in a particular state for a specific 
+* The variables can be divided into several categories:
+      1) Dummy variables that indicate what laws are implemented in a particular state for a specific 
       2) Dummy variables for each year in the panel.
       3) Continuous variables that measure fatality counts, and ratios of fatalities to the population. This includes our outcome variable of interest, `totfatrte`
-      4)  Continuous demographic variables like `unem` (state unemployment rate), `perc14_24` (percentage of population aged 14 to 24).
+      4) Continuous demographic variables like `unem` (state unemployment rate), `perc14_24` (percentage of population aged 14 to 24).
       5) "Index" variables that indicate which year and state the data corresponds to (aptly named `year` and `state`).  
 
 We'll examine these different variable types separately in our EDA. 
@@ -118,19 +118,21 @@ cols.wo.yrdummies <- c('year', 'state', 'sl55', 'sl65', 'sl70', 'sl75', 'slnone'
 t(data[data$totfatrte > 50, cols.wo.yrdummies])
 ```
 
-Both observations are in state 51 and occur in the early 1980s. It appears this state's 1980 population (~470k) is around 10% of the average state population that year (~4.67 million. This low state population could explain the large fatality ratios in those years. The other variables for this state in these years don't look particularly noteworthy.
+Both observations are in state 51 and occur in the early 1980s. It appears this state's 1980 population (~470k) is around 10% of the average state population that year (~4.67 million). This low state population could explain the large fatality ratios in those years. The other variables for this state in these years don't look particularly noteworthy.
 
-Now lets look at total fatalities over time.
+Now let's look at how this variable over time:
 
 ```{r fig3, out.width = '45%', fig.show='hold', fig.align='center'}
+
+year.labels <- apply()
 ggplot(data, aes(as.factor(year), totfatrte)) +
  geom_boxplot() +
- ggtitle('Total Fatalities by Year') +
+ ggtitle('Total Fatality Rate by Year') +
  xlab('Year') + ylab('Total Fatalities') +
  theme(axis.text.x = element_text(angle = 45, hjust = 1.2))
 ```
 
-Total fatalities have declined gradually but not steadily since the 80s. However the variance across states remains fairly steady.
+The Total Fatality Rate has declined gradually but not steadily since the 80s. The variance across states remains fairly steady over time.
 
 Let's see how the states are concentrated.
 
@@ -138,7 +140,7 @@ Let's see how the states are concentrated.
 # totfatrte: total fatalities per 100,000 population
 ggplot(data, aes(x = year, y = totfatrte, colour = as.factor(state))) +
   geom_line(alpha = 0.7, show.legend = F) +
-  ggtitle("Total fatalities per 100,000 population") + theme_bw()
+  ggtitle("Total fatalities per 100k population") + theme_bw()
 ```
 
 The states are fairly concentrated and the outliers tend to fall on the high rather than the low side.
@@ -148,7 +150,7 @@ Let's now look at histograms for `perc14_24`, `unem`, and `vehicmilespc`:
 ```{r}
 vehicpc.hist <- ggplot(data, aes(x=vehicmilespc)) + 
   geom_histogram(color='black', fill='green') +
-  ggtitle('Vehicle Miles Per Capita')
+  ggtitle('Vehicle Miles Per \nCapita')
 
 unem.hist <- ggplot(data, aes(x=unem)) + 
   geom_histogram(color='black', fill='purple') +
@@ -156,15 +158,42 @@ unem.hist <- ggplot(data, aes(x=unem)) +
 
 perc.hist <- ggplot(data, aes(x=perc14_24)) + 
   geom_histogram(color='black', fill='red') +
-  ggtitle('% Pop Aged 14-24')
+  ggtitle('Pct Pop Aged 14-24')
 
 grid.arrange(perc.hist, unem.hist, vehicpc.hist, ncol=3, nrow=1)
 ```
 
-These distributions look fairly ordinary. Similar to the `totfatrte` histogram, we see right-ward skewness in the `unem` and `vehicmilespc`. \textcolor{red}{Any other commentary. Maybe we can talk about log transforming these variables to deal with the skewness? Is this a good enough reason to log transform?}
+These distributions look fairly ordinary \textcolor{red}{what does "ordinary" mean in a statistical sense? Maybe we should change the wording here.}. Similar to the `totfatrte` histogram, we see right-ward skewness in the `unem` and `vehicmilespc`. \textcolor{red}{Any other commentary. Maybe we can talk about log transforming these variables to deal with the skewness? Is this a good enough reason to log transform?}
 
+How do these variables change over time?
+
+```{r}
+vehicpc.ot <- ggplot(data, aes(x=as.factor(year), y=vehicmilespc)) +
+ geom_boxplot(fill='green') +
+ ggtitle('Vehicle Miles Per Capita Over Time') +
+ xlab('Year') + ylab('Miles/Capita') +
+ theme(axis.text.x = element_blank(), axis.ticks.x=element_blank())
+
+unem.ot <- ggplot(data, aes(x=as.factor(year), y=unem)) +
+ geom_boxplot(fill='purple') +
+ ggtitle('Unemployment Rate Over Time') +
+ xlab('Year') + ylab('Unemployment') +
+ theme(axis.text.x = element_blank(), axis.ticks.x=element_blank())
+
+perc.ot <- ggplot(data, aes(x=as.factor(year), y=perc14_24)) +
+ geom_boxplot(fill='red') +
+ ggtitle('Pct Pop Aged 14-24 Over Time') +
+ xlab('Year') + ylab('Miles/Capita') +
+ #theme(axis.ticks.x=element_blank())  # axis.text.x = element_blank(), 
+ theme(axis.text.x = element_text(angle = 45, hjust = 1.2))
+
+grid.arrange(perc.ot, unem.ot, vehicpc.ot, ncol=2, nrow=2)
+```
+
+**Notes:**
+* `perc14_24` and `vehicmilespc` both show a strong trend over time, with `perc14_24` trending downward until stabilizing in 
 \textcolor{red}{Questions I want to answer in the EDA:}
-\textcolor{red}{-Do these variables change over time? if not, comment how they'd be eliminated in the panel models unless we interact them with year.}
+
 \textcolor{red}{-Is there enough variance in them to be good candidate EVs in the model?}
 \textcolor{red}{-Does anything stick out as needing a transformation? e.g. rounding. Explain why this is a good idea.}
 
