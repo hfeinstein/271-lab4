@@ -62,6 +62,7 @@ library(plm)
 library(plyr)
 library(corrplot)
 library(gridExtra)
+library(stargazer)
 
 opts_chunk$set(tidy.opts=list(width.cutoff=60),tidy=TRUE)
 ```
@@ -593,8 +594,12 @@ model.fe <- plm(totfatrte ~ factor(year) + bac08round + bac10round +
                 index=c('state', 'year'), model='within')
 
 summary(model.fe)
-
+# stargazer(mod2, model.fe, type = "text")
 ```
+- All four estimates are directionally negative in both models and all four estimates are statistically significant at p<0.001 level in the fixed effect model. *bac08* and *bac10* coefficients from the pooled OLS has higher absolute estimates when compared to those from the fixed effect model, where they are statistically significant at p<0.001 from both models. On the other hand, *perse* and *sbprim* coefficients from the fixed effect model has higher absolute estimates when compared to those from the pooled OLS and are significant only in the fixed effect model.    
+- The fixed effect estimates are likely to be more reliable because the standard errors are uniformly lower when compared to those from the pooled OLS, indicating higher precision in the fixed effect model. In addition, the pooled OLS assumes there is independence between the observations and does not account for unobserved heterogeneity, which makes the fixed effect model more consistent compared to the pooled OLS. 
+- The fixed effect model assumes that the state fixed effects are time independent and the explanatory variables change over time with no perfect linear relationship between the variables. In comparison, the pooled OLS assumes that the response variable is normally distributed and errors are uncorrelated with the explanatory variables, which are valid assumptions based on the residual diagnostics. 
+
 
 5. Would you perfer to use a random effects model instead of the fixed effects model you built in *Exercise 4*? Please explain.
 
