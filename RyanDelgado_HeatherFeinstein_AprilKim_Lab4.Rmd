@@ -371,7 +371,9 @@ ddply(data, .(year), summarize,  Total=mean(totfatrte))
 ```
 
 We'll estimate the linear regression model on the year dummies using the `totfatrte` column and the `year` column converted to a factor:
-
+$$
+totfatrte_{it} = \beta_0 + \sum_{k=1980}^{2004}\delta_{k}year_k + u_{it}
+$$
 ```{r}
 #linear model
 mod1 <- lm(totfatrte ~ factor(year) , data=data)
@@ -382,15 +384,12 @@ The summary shows that the coefficients are estimated to be negative for each ye
 
 ##3. Expand your model in *Exercise 2* by adding variables *bac08, bac10, perse, sbprim, sbsecon, sl70plus, gdl, perc14_24, unem, vehicmilespc*, and perhaps *transformations of some or all of these variables*. Please explain carefully your rationale, which should be based on your EDA, behind any transformation you made. If no transformation is made, explain why transformation is not needed. How are the variables *bac8* and *bac10* defined? Interpret the coefficients on *bac8* and *bac10*. Do *per se laws* have a negative effect on the fatality rate? What about having a primary seat belt law? (Note that if a law was enacted sometime within a year the fraction of the year is recorded in place of the zero-one indicator.) 
 
-We'll estimate this model:
-\textcolor{red}{Ryan to finish writing the latex for this.}
-$$
-totfatrte_{it} = hey
-$$
+We chose not to perform any transformations, as the EDA did not show nonlinear relationships between `totfatrte` and the continuous variables. We do see that these variables are skewed right which log transforming could "fix". However this will change the interpretations of the coefficients, and this will only cause problems if it skews the residuals. We'll examine the residuals of the model after estimating it to ensure they're not heavily skewed.
 
-\textcolor{blue}{I think we should log transform unem}
-\textcolor{red}{Should we include a latex rendering of the model we'll estimate? We may score extra points by doing that... }
-\textcolor{blue}{yesssss we def should}
+We'll estimate the pooled OLS model with the additional variables:
+$$
+totfatrte_{it} = \beta_0 + \sum_{k=1980}^{2004}\delta_{k}year_k +  \beta_1 bac08_{it} + \beta_2 bac10_{it} + \beta_3 perse_{it} + \beta_4 sbprim_{it} + \beta_5 sbsecon_{it} + \beta_6 sl70plus_{it} + \beta_7 gdl_{it} + \beta_8 perc14_24_{it} + \beta_9 unem_{it} + \beta_{10} vehicmlespc_{it} + u_{it}
+$$
 
 ```{r}
 data$bac08round <- round(data$bac08)
@@ -409,22 +408,36 @@ mod2 <- lm(totfatrte ~ factor(year) + bac08round + bac10round +
 summary(mod2)
 ```
 
-bac8 is blood alcohol limit .08
-bac10 is blood alcohol limit .10
+This model indicates that in addition to years, laws with blood alcohol limis of either .08 or .1 have a significant impact decreasing fatalities in car accidents. Further, it indicates that laws that allow speed limits over 70, high unemployment, and high vehicle miles per capita have significant impact increasing fatalities from car accidents. 
 
-This model indicates that in addition to years, blood alcohol limis of either .08 or .1 have a significant impact decreasing fatalities in car accidents. Further, it indicates that speed limits over 70, high unemployment, and high vehicle miles per capita have significant impact increasing fatalities from car accidents. 
+Let's plot the model residuals:
+```{r, fig.height=3}
+hist(mod2$residuals, main='Pooled OLS Model Residuals')
+```
+
+The residuals of the model do not appear heavily skewed, so the skewness we saw in the continuous variables in the EDA will not negatively impact our inferences.
 
 ##4. Reestimate the model from *Exercise 3* using a fixed effects (at the state level) model. How do the coefficients on *bac08, bac10, perse, and sbprim* compare with the pooled OLS estimates? Which set of estimates do you think is more reliable? What assumptions are needed in each of these models?  Are these assumptions reasonable in the current context?
+
+We'll estimate this fixed effects model:
+
+Let
+$$
+\widetilde{x}_{it} = x_{it} - \overline{x}_i
+$$
+
+$$
+\widetilde{totfatrte}_{it} = \beta_0 + \sum_{k=1980}^{2004}\delta_{k}year_k +  \beta_1 \widetilde{bac08}_{it} + \beta_2 \widetilde{bac10}_{it} + \beta_3 \widetilde{perse}_{it} + \beta_4 \widetilde{sbprim}_{it} + \beta_5 \widetilde{sbsecon}_{it} + \beta_6 \widetilde{sl70plus}_{it} + \beta_7 \widetilde{gdl}_{it} + \beta_8 \widetilde{perc14_24}_{it} + \beta_9 \widetilde{unem}_{it} + \beta_{10} \widetilde{vehicmlespc}_{it} + \widetilde{u}_{it}
+$$
 
 ```{r}
 model.fe <- plm(totfatrte ~ factor(year) + bac08round + bac10round + 
                 perseround + sbprimround + sbseconround + sl70plusround +
-                gdlround + perc14_24 + log(unem) + vehicmilespc, 
+                gdlround + perc14_24 + unem + vehicmilespc, 
                 data=data, 
                 index=c('state', 'year'), model='within')
 
 summary(model.fe)
-# stargazer(mod2, model.fe, type = "text")
 ```
 - All four estimates are directionally negative in both models and all four estimates are statistically significant at p<0.001 level in the fixed effect model. *bac08* and *bac10* coefficients from the pooled OLS has higher absolute estimates when compared to those from the fixed effect model, where they are statistically significant at p<0.001 from both models. On the other hand, *perse* and *sbprim* coefficients from the fixed effect model has higher absolute estimates when compared to those from the pooled OLS and are significant only in the fixed effect model.    
 - The fixed effect estimates are likely to be more reliable because the standard errors are uniformly lower when compared to those from the pooled OLS, indicating higher precision in the fixed effect model. In addition, the pooled OLS assumes there is independence between the observations and does not account for unobserved heterogeneity, which makes the fixed effect model more consistent compared to the pooled OLS. 
@@ -437,7 +450,7 @@ To determine whether random effects model should be used over the fixed effects 
 ```{r}
 model.re <- plm(totfatrte ~ factor(year) + bac08round + bac10round + 
                 perseround + sbprimround + sbseconround + sl70plusround +
-                gdlround + perc14_24 + log(unem) + vehicmilespc, 
+                gdlround + perc14_24 + unem + vehicmilespc, 
                 data=data, 
                 index=c('state', 'year'), model='random')
 phtest(model.fe, model.re)
