@@ -49,7 +49,7 @@ Over the years, individual states have enacted many laws to to help prevent car 
 
 **Exercises:**
 
-1. Load the data. Provide a description of the basic structure of the dataset, as we have done throughout the semester. Conduct a very thorough EDA, which should include both graphical and tabular techniques, on the dataset, including both the dependent variable *totfatrte* and the potential explanatory variables. You need to write a detailed narrative of your observations of your EDA. *Reminder: giving an "output dump" (i.e. providing a bunch of graphs and tables without description and hoping your audience will interpret them) will receive a zero in this exercise.*
+##1. Load the data. Provide a description of the basic structure of the dataset, as we have done throughout the semester. Conduct a very thorough EDA, which should include both graphical and tabular techniques, on the dataset, including both the dependent variable *totfatrte* and the potential explanatory variables. You need to write a detailed narrative of your observations of your EDA. *Reminder: giving an "output dump" (i.e. providing a bunch of graphs and tables without description and hoping your audience will interpret them) will receive a zero in this exercise.*
 
 ```{r setup, include=FALSE}
 library(knitr)
@@ -87,12 +87,12 @@ print(paste('The number of NA values in the dataset is ', sum(is.na(data))))
       4) Continuous demographic variables like `unem` (state unemployment rate), `perc14_24` (percentage of population aged 14 to 24).
       5) "Index" variables that indicate which year and state the data corresponds to (aptly named `year` and `state`).  
 
-We'll examine these different variable types separately in our EDA. 
+We'll examine these different variable types separately in our Exploratory Data Analysis. 
 
 ### Exploratory Data Analysis
 Let's start by looking at our outcome variable, `totfatrte`. This variable measures the Total Number of Fatalities per 100 thousand individuals in the state/year. We'll first plot a histogram of this variable to understand its distribution:
 
-```{r}
+```{r, fig.height=3}
 ggplot(data, aes(x=totfatrte)) + 
   geom_histogram(fill='darkgreen', color='black') +
   ggtitle('Total Annual Fatalities per 100k')
@@ -117,7 +117,7 @@ t(data[data$totfatrte > 50, cols.wo.yrdummies])
 Both observations are in state 51 and occur in the early 1980s. It appears this state's 1980 population (~470k) is around 10% of the average state population that year (~4.67 million). This low state population could explain the large fatality ratios in those years. The other variables for this state in these years don't look particularly noteworthy.
 
 Now let's look at how `totfatrte` changes over time:
-```{r fig3, out.width = '45%', fig.show='hold', fig.align='center'}
+```{r fig3, out.width = '75%', fig.show='hold', fig.align='center'}
 # Get a list of the years w/o the millenium/century so the x axis looks cleaner.
 years.nocent <- data %>% distinct(as.character(year)) %>% lapply(substr, 3, 4) %>% unlist(use.names=FALSE)
 
@@ -139,7 +139,7 @@ Let's now look at histograms for the continuous variables in the dataset, `perc1
 
 Like before, we'll plot histogramas of these variables to learn their distributions:
 
-```{r}
+```{r, fig.height=3}
 vehicpc.hist <- ggplot(data, aes(x=vehicmilespc)) + 
   geom_histogram(color='black', fill='green') +
   ggtitle('Vehicle Miles Per \nCapita')
@@ -187,7 +187,7 @@ grid.arrange(perc.ot, unem.ot, vehicpc.ot, ncol=2, nrow=2)
 `perc14_24` and `vehicmilespc` both show a strong trend over time, with `perc14_24` trending downward until stabilizing in the early 90s and `vehicmilespc` steadily trending upward. `unem` appears to show a very weak downward trend over the time period with cylical behavior (i.e. it's higher in times of recession). Both `perc14_24` and `vehicmilespc` have a state that appears to be a persistent outlier. In `perc14_24`, the outlier appears to diverge from the stabilizing trend in the early 90s. The outliers in `vehicmilespc` trend upward with the prevailing trend, so that's not particularly interesting.
 
 How do these variables correlate with `totfatrte`? We'll explore this by visualizing the absolute relationships between `totfatrte` and the relationships between the yearly first-differences. Let's look at scatter plots of the absolute variables first:
-```{r}
+```{r, fig.height=4}
 vmpc.vs.tot <- ggplot(data, aes(x=vehicmilespc, y=totfatrte)) + 
   geom_point() +
   geom_smooth(method=lm) +
@@ -208,89 +208,19 @@ unem.vs.tot <- ggplot(data, aes(x = unem, y = totfatrte)) +
 grid.arrange(vmpc.vs.tot, perc.vs.tot, unem.vs.tot, ncol=2, nrow=2)
 ```
 
-All of these variables appear to have some correlations with `totfatrte`. What about the relationships between the change in these variables with the outcome variable? We'll find the yearly first difference ($x_{t} - x_{t-1}$), partitioned by state:
+All of these variables appear to have positive correlations with `totfatrte`.
 
-```{r}
-diffed <- data %>% 
-  group_by(state) %>%
-  mutate(totfatrte.diff = totfatrte - dplyr::lag(totfatrte, order_by=year),
-         unem.diff = unem - dplyr::lag(unem, order_by=year),
-         vehicmilespc.diff = vehicmilespc - dplyr::lag(vehicmilespc, order_by=year),
-         perc14_24.diff = perc14_24 - dplyr::lag(perc14_24, order_by=year)) %>%
-  na.omit() %>%
-  select(state, year, totfatrte.diff, unem.diff, vehicmilespc.diff, perc14_24.diff)
-
-vmpcdiff.vs.tot <- ggplot(diffed, aes(x=vehicmilespc.diff, y=totfatrte.diff)) + 
-  geom_point() +
-  geom_smooth(method=lm) +
-  ggtitle('Vehicle miles travelled per capita\n vs Fatalities, change') +
-  xlab('Vehicle miles travelled') + ylab('Fatalities per 100k population') 
-
-percdiff.vs.tot <- ggplot(diffed, aes(x=perc14_24.diff, y=totfatrte.diff)) + 
-  geom_point() +
-  geom_smooth(method=lm) +
-  ggtitle('Percent of Pop 14-24\n vs Fatalities, change') +
-  xlab('Percent of Pop 14-24') + ylab('Fatalities per 100k population') 
-
-unemdiff.vs.tot <- ggplot(diffed, aes(x = unem.diff, y = totfatrte.diff)) + 
-  geom_point() + geom_smooth(method = lm) +
-  ggtitle("Unemployement vs\n Fatalities, change") + xlab("Unemployment Rate") +
-  ylab("Fatalities per 100k population")
-
-grid.arrange(vmpcdiff.vs.tot, percdiff.vs.tot, unemdiff.vs.tot, ncol=2, nrow=2)
-```
-
-The relationships of the first differences of the variables are all positive, but the relationship of the differences between `vehicmilespc` and `totfatrte` appears to be stronger than the relationship of the absolute terms. This may be evidence of unobserved heterogeneity at the state level that's eliminated with the first difference. Let's also look at the relationship between these variables with `totfatrte` when they're de-meaned over time:
-
-```{r}
-demeaned <- data %>% 
-  group_by(state) %>%
-  mutate(totfatrte.mean = mean(totfatrte),
-         unem.mean = mean(unem),
-         vehicmilespc.mean = mean(vehicmilespc),
-         perc14_24.mean = mean(perc14_24)) %>%
-  mutate(totfatrte.demean = totfatrte - totfatrte.mean,
-         unem.demean = unem - unem.mean,
-         vehicmilespc.demean = vehicmilespc - vehicmilespc.mean,
-         perc14_24.demean = perc14_24 - perc14_24.mean) %>%
-  select(state, year, totfatrte.demean, unem.demean, vehicmilespc.demean, perc14_24.demean)
-
-vmpcdemean.vs.tot <- ggplot(demeaned, aes(x=vehicmilespc.demean, y=totfatrte.demean)) + 
-  geom_point() +
-  geom_smooth(method=lm) +
-  ggtitle('Vehicle miles travelled per capita\n vs Fatalities, demeaned') +
-  xlab('Vehicle miles travelled') + ylab('Fatalities per 100k population') 
-
-percdemean.vs.tot <- ggplot(demeaned, aes(x=perc14_24.demean, y=totfatrte.demean)) + 
-  geom_point() +
-  geom_smooth(method=lm) +
-  ggtitle('Percent of Pop 14-24\n vs Fatalities, demeaned') +
-  xlab('Percent of Pop 14-24') + ylab('Fatalities per 100k population') 
-
-unemdemean.vs.tot <- ggplot(demeaned, aes(x = unem.demean, y = totfatrte.demean)) + 
-  geom_point() + geom_smooth(method = lm) +
-  ggtitle("Unemployement vs\n Fatalities, demeaned") + xlab("Unemployment Rate") +
-  ylab("Fatalities per 100k population")
-
-grid.arrange(vmpcdemean.vs.tot, percdemean.vs.tot, unemdemean.vs.tot, ncol=2, nrow=2)
-```
-
-The correlations still appear to be all positive as before, but the correlations of the de-meaned `vehicmilespc` and `totfatrte` are not as strong as the first-differenced correlations.
-
-Next let's examine some of our discrete variables. The variables we'll focus on are \textcolor{red}{also mention speed limit. forgot that.}
+Next let's examine some of our discrete variables. The variables we'll focus on are:
 
 * `bac10` and `bac08`, indicator variables for the legal blood-alcohol (BAC) driving limit 
 * `perse`, an indicator variable for the implementation of Per Se Laws.
 * `sbprim`, an indicator variable for Primary Seat belt laws (which allows law enforcement officers to ticket drivers for solely not wearing a seatbelt)
-* `sbsecon`, an indicator variable for Secondary Seat belt laws (which means law enforcement officers cannot ticket drivers for solely not wearing a seatbelt, but can increase the ticket if stopped for another offense.) 
+* `sbsecon`, an indicator variable for Secondary Seat belt laws (which means law enforcement officers cannot ticket drivers for solely not wearing a seatbelt, but can increase the ticket if stopped for another offense.)
+* `sl70plus`, an indicator variable for whether the state allows for 70+ speed limits on its highways.
 * `gdl`, an indicator variable for Graduated Driver's Licensing laws. These laws mean that drivers must first drive in a supervised learning period, then progress to an intermediate license before being granted a full driver's license.
 
-For each class of categorical variables, we'll visualize them in three ways:
-* An initial histogram to get a sense of the distribution.
-* With time series plots of the number of states implementing them over time _and_ their average `totfatrte` over time. This will give us a sense of how they change over time and their effect on `totfatrte` throughout time.
-* With box & whisker plots, with `totfatrte` on the y-axis. This will give a clearer depiction of their impact on `totfatrte`.
 
-Let's examine the distribution of the BAC variables:
+Let's first plot the distributions of these categorical variables:
 ```{r}
 bac08.hist <- ggplot(data, aes(x=bac08)) + 
   geom_histogram() +
@@ -298,14 +228,27 @@ bac08.hist <- ggplot(data, aes(x=bac08)) +
 bac10.hist <- ggplot(data, aes(x=bac10)) + 
   geom_histogram() +
   ggtitle('BAC .10')
-
-grid.arrange(bac08.hist, bac10.hist, ncol=2, nrow=1)
+perse.hist <- ggplot(data, aes(x=perse)) + 
+  geom_histogram() +
+  ggtitle('Per Se Law')
+sl.hist <- ggplot(data, aes(x=sl70plus)) + 
+  geom_histogram() +
+  ggtitle('Speed Limit 70+ Law')
+gdl.hist <- ggplot(data, aes(x=gdl)) + 
+  geom_histogram() +
+  ggtitle('Graduated Driver\'s License Law')
+grid.arrange(bac08.hist, bac10.hist, perse.hist, sl.hist, gdl.hist, ncol=2, nrow=3)
 ```
 
-We see that these categorical variables actually have values that are between 0 and 1. These are cases where the BAC laws were implemented in the middle of the year. In the modeling stage we'll round these variables to the nearest whole values and turn them into factors so that their coefficients are more easily interpretable.
+In each of the categorical variables we see values between 0 and 1. This is due to states implementing laws intra year. We'll simplify these variables by rounding them to the nearest whole number.
 
-Let's plot the BAC values over time:
-```{r}
+We'll visualize each class of categorical variables in two ways:
+
+* With a time series plot of the number of states implementing them over time
+* With a box & whisker plot, with `totfatrte` on the y-axis. This will give a clearer depiction of their impact on `totfatrte`.
+
+Let's start with the BAC law frequencies over time and the `totfatrte` box plot by BAC laws:
+```{r, fig.height=3}
 data$baclevel <- 'None'
 data[(data$bac08 == 1), 'baclevel'] = '.08'
 data[(data$bac10 == 1), 'baclevel'] = '.10'
@@ -315,217 +258,99 @@ agged.fat.bybacyr <- data %>%
   group_by(baclevel, year) %>%
   dplyr::summarize(totfatrte = mean(totfatrte),  # calculate average total fatality rates
                    count = n())  # number of states in each bac
-
-bac.fatrte.t <- ggplot(agged.fat.bybacyr, aes(x=year, y=totfatrte, colour=baclevel)) +
-  geom_line() + ggtitle('Average Total Fatality Rate by BAC Level, over time') +
-  ylab('Average Total Fatality Rate')
-  
 bac.cnt.t <- ggplot(agged.fat.bybacyr, aes(x=year, y=count, colour=baclevel)) +
   geom_line() + ggtitle('State Count by BAC Level, over time') +
   ylab('Number of States')
-
-grid.arrange(bac.fatrte.t, bac.cnt.t, ncol=1, nrow=2)
-         
+bac.boxplot <- ggplot(data, aes(x=baclevel, y=totfatrte, color=baclevel)) + 
+  geom_boxplot() +
+  ggtitle('BAC level vs Fatalities') +
+  xlab('BAC level') + ylab('Fatalities per 100k population')
+grid.arrange(bac.cnt.t, bac.boxplot, ncol=2, nrow=1)
 ```
 
 We see several things in these plots:
 
 * There's a sharp adoption of BAC laws in the early 1980s, with many states adopting BAC .10 laws.
-* States with no BAC laws tend to average higher fatality rates than states with BAC laws.
-* states with BAC .08 laws often (but not always) have lower fatality rates than states with .10 laws.
 * The number of states with .08 BAC limit laws has risen steadily starting in the late 80s, with the vast majority of states adopting this limit by the end of the sample.
-* The average total fatality rate vary wildy in the early 2000s. These extreme values are likely due to sharp declines in the number of states that have these laws rather than true increases in fatality rates in those states. 
+* States with more restrictive BAC laws (i.e. with BAC levels of .08) tend to have lower fatality rates than states with more lax BAC laws.
 
-Now let's look at boxplot of these different BAC levels vs `totfatrte`:
-```{r}
-ggplot(data, aes(x=as.factor(baclevel), y=totfatrte)) + 
-  geom_boxplot() +
-  ggtitle('BAC level vs Fatalities') +
-  xlab('BAC level') + ylab('Fatalities per 100k population')
-```
+Let's now examine the same plots for `perse`:
 
-This plot shows that cases with more restrictive BAC levels tend to have lower fatality rates. This intuitively makes sense, as the laws may deter intoxicated driving.
-
-Let's now examine `perse`. As before, we'll first plot a histogram:
-
-```{r}
-ggplot(data, aes(x=perse)) + 
-  geom_histogram() +
-  ggtitle('Per Se Law')
-```
-
-We again see values between 0 and 1 in this variable. Let's look at how `perse` changes over time:
-
-```{r}
+```{r, fig.height=3}
 data$persefactor <- as.factor(round(data$perse))
-
 agged.fat.byperseyr <- data %>%
   group_by(persefactor, year) %>%
   dplyr::summarize(totfatrte = mean(totfatrte),  # calculate average total fatality rates
                    count = n())
-
-perse.fatrte.t <- ggplot(agged.fat.byperseyr, aes(x=year, y=totfatrte, colour=persefactor)) +
-  geom_line() + ggtitle('Average Total Fatality Rate by perse, over time') +
-  ylab('Average Total Fatality Rate')
-  
-perse.cnt.t <- ggplot(agged.fat.byperseyr, aes(x=year, y=count, colour=persefactor)) +
+perse.cnt.t <- ggplot(agged.fat.byperseyr, aes(x=year, y=count, color=persefactor)) +
   geom_line() + ggtitle('State Count by perse, over time') +
   ylab('Number of States')
-
-grid.arrange(perse.fatrte.t, perse.cnt.t, ncol=1, nrow=2)
-```
-
-It appears that states without Per Se laws tend to average lower fatality rates over time than states with the laws. This is unexpected, as we'd intuitively assume that more restrictive laws surrounding drunk driving would result in less fatalities. From this visualization, this does not appear to be the case. Let's examine the relationship between `perse` and `totfatrte` further in a box plot:
-
-```{r}
-ggplot(data, aes(x=persefactor, y=totfatrte)) + 
+perse.boxplot <- ggplot(data, aes(x=persefactor, y=totfatrte, color=persefactor)) + 
   geom_boxplot() +
   ggtitle('Per Se Law vs Fatalities') +
   xlab('Per Se Law?') + ylab('Fatalities per 100k population')
+grid.arrange(perse.cnt.t, perse.boxplot, ncol=2, nrow=1)
 ```
 
-Let's move on to looking at the speed limit. There are several speed limit variables in this dataset, `sl55`, `sl65`, `sl70`, `sl75`, `slnone`, and `sl70plus`. The variable names reflect the max speed limit in the state, except for sl70plus, which is a consolidated view of speed limit laws. Let's look at the individual variables:
+Per se laws saw steady adoption among states until stabilizing in the late 90s, and  we see that these states tended to average lower fatality rates.
 
-```{r}
-data$slfactor <- 'None'
-data[data$sl55 == 1, 'slfactor'] <- '55'
-data[data$sl65 == 1, 'slfactor'] <- '65'
-data[data$sl70 == 1, 'slfactor'] <- '70'
-data[data$sl75 == 1, 'slfactor'] <- '75'
-data$slfactor <- as.factor(data$slfactor)
 
-sl.agged <- data %>%
-  group_by(slfactor) %>%
-  dplyr::summarize(num = n())
-
-ggplot(sl.agged, aes(x=slfactor, y=num)) +
-  geom_bar(stat='identity', fill='blue', color='black')
-  
-  
-```
-
-We see that the most common max speed limits are 55 and 65. Given the infrequency of the higher speed limits (<100 in the sample means 3-4 states with these speed limits per year), it may be beneficial to bin these into high & low speed limits. We'll use the sl70plus variable going forward.
-
-Let's look at how speed limits change over time:
-
-```{r}
+Let's look at how speed limits change over time and how they affect fatality rates:
+```{r, fig.height=3}
 data$sl70plusfactor <- as.factor(round(data$sl70plus))
-
 agged.fat.bysl <- data %>%
   group_by(sl70plusfactor, year) %>%
   dplyr::summarize(totfatrte = mean(totfatrte),
                    count = n())
-
-sl.fatrte.t <- ggplot(agged.fat.bysl, aes(x=year, y=totfatrte, colour=sl70plusfactor)) +
-  geom_line() + ggtitle('Average Total Fatality Rate by Speed Limit, over time') +
-  ylab('Average Total Fatality Rate')
-  
-sl.cnt.t <- ggplot(agged.fat.bysl, aes(x=year, y=count, colour=sl70plusfactor)) +
+sl.cnt.t <- ggplot(agged.fat.bysl, aes(x=year, y=count, color=sl70plusfactor)) +
   geom_line() + ggtitle('State Count by Speed Limit, over time') +
   ylab('Number of States')
-
-grid.arrange(sl.fatrte.t, sl.cnt.t, ncol=1, nrow=2)
+sl.boxplot <- ggplot(data, aes(x=sl70plusfactor, y=totfatrte, color=sl70plusfactor)) + 
+  geom_boxplot() +
+  ggtitle('Speed Limit 70+ vs Fatalities') +
+  xlab('SL70+') + ylab('Fatalities per 100k population')
+grid.arrange(sl.cnt.t, sl.boxplot, ncol=2, nrow=1)
 ```
 
 It appears there was significant adoption of 70+ speed limit laws in the 90s, with the number of 70+ speed limit states stabilizing before 2000. Additionally, it appears that states with higher speed limits have higher fatality rates than states with lower speed limits. This makes sense, as higher speeds likely make drivers more at risk of injury in collisions.
 
-
-Now let's look at the box plot with `totfatrte`:
-```{r}
-ggplot(data, aes(x=sl70plusfactor, y=totfatrte)) + 
-  geom_boxplot() +
-  ggtitle('Speed Limit 70+ vs Fatalities') +
-  xlab('SL70+') + ylab('Fatalities per 100k population')
-```
-
-The box plot tells the same story: states with 70+ speed limits tend to have higher fatality rates.
-
-
-Now let's examine the seatbelt law variable, `seatbelt`. We'll consolidate these into one factor variable and create a bar plot:
-```{r}
-seatbelt.agged <- data %>%
-  group_by(seatbelt) %>%
-  dplyr::summarize(count = n())
-
-ggplot(seatbelt.agged, aes(x=seatbelt, y=count)) +
-  geom_bar(stat='identity', fill='darkgreen', color='black') +
-  ggtitle('Frequency count of seatbelt law types')
-
-```
-
-Secondary seatbelt laws are the most frequent. How do these laws change over time?:
-
-```{r}
+What about seatbelt laws?:
+```{r, fig.height=3}
 data$seatbeltfactor <- as.factor(data$seatbelt)
-
 agged.fat.bysb <- data %>%
   group_by(seatbeltfactor, year) %>%
   dplyr::summarize(totfatrte = mean(totfatrte),
                    count = n())
-
-sb.fatrte.t <- ggplot(agged.fat.bysb, aes(x=year, y=totfatrte, colour=seatbeltfactor)) +
-  geom_line() + ggtitle('Average Total Fatality Rate by Seatbelt Law, over time') +
-  ylab('Average Total Fatality Rate')
-  
-sb.cnt.t <- ggplot(agged.fat.bysb, aes(x=year, y=count, colour=seatbeltfactor)) +
+sb.cnt.t <- ggplot(agged.fat.bysb, aes(x=year, y=count, color=seatbeltfactor)) +
   geom_line() + ggtitle('State Count by Seatbelt Law, over time') +
   ylab('Number of States')
-
-grid.arrange(sb.fatrte.t, sb.cnt.t, ncol=1, nrow=2)
-```
-
-We see that more states have adopted primary or secondary seatbelt laws over time, with the vast majority states having some seatbelt law by 1995. We also see that states with Primary seatbelt laws tend to average lower fatality rates over the years compared to states with secondary seatbelt laws. We see cases were states with no seatbelt laws have lower fatality rates than states with the laws, but that's likely due to the smaller number of states resulting in extreme values.
-
-Let's look at box plots:
-
-```{r}
-ggplot(data, aes(x=seatbeltfactor, y=totfatrte)) + 
+sb.boxplot <- ggplot(data, aes(x=seatbeltfactor, y=totfatrte, color=seatbeltfactor)) + 
   geom_boxplot() +
   ggtitle('Seatbelt Law vs Fatalities') +
   xlab('Seatbelt Law') + ylab('Fatalities per 100k population')
+grid.arrange(sb.cnt.t, sb.boxplot, ncol=2, nrow=1)
 ```
 
-The box plot also shows that states with seatbelt laws tend to have lower fatality rates, with the more restrictive Primary seatbelt laws resulting in the lowest fatality rates.
+We see that more states have adopted primary or secondary seatbelt laws over time, with the vast majority states having some seatbelt law by 1995. We also see that states with Primary seatbelt laws tend to average lower fatality rates compared to states with secondary seatbelt laws and states with no seatbelt laws.
 
-Finally, let's examine `gdl`. Bar plot:
-```{r}
-gdl.agged <- data %>%
-  group_by(gdl) %>%
-  dplyr::summarize(count = n())
-
-ggplot(gdl.agged, aes(x=gdl, y=count)) +
-  geom_bar(stat='identity', fill='darkgreen', color='black') +
-  ggtitle('Frequency count of Graduated Driver\'s License laws')
-```
-
-We again see non-discrete values for this variable, similar to the BAC and Per Se variables. As before, we'll discretize this variable by rounding. Let's plot the time series graphs:
-```{r}
+Let's wrap-up by looking at Graduated Driver's License laws:
+```{r, fig.height=3}
 data$gdlfactor <- as.factor(round(data$gdl))
-
 agged.fat.bygdl <- data %>%
   group_by(gdlfactor, year) %>%
   dplyr::summarize(totfatrte = mean(totfatrte),
                    count = n())
-
-gdl.fatrte.t <- ggplot(agged.fat.bygdl, aes(x=year, y=totfatrte, colour=gdlfactor)) +
-  geom_line() + ggtitle('Average Total Fatality Rate by GDL, over time') +
-  ylab('Average Total Fatality Rate')
-  
-gdl.cnt.t <- ggplot(agged.fat.bygdl, aes(x=year, y=count, colour=gdlfactor)) +
-  geom_line() + ggtitle('State Count by GDL, over time') +
+gdl.cnt.t <- ggplot(agged.fat.bygdl, aes(x=year, y=count, color=gdlfactor)) +
+  geom_line() + ggtitle('State Count by GDL,\nover time') +
   ylab('Number of States')
-
-grid.arrange(gdl.fatrte.t, gdl.cnt.t, ncol=1, nrow=2)
-```
-
-States began to enact Graduated Driver's License laws starting in the late 90s, and we immediately see that states that enact these laws have lower fatality rates. The box plot tells the same story:
-
-```{r}
-ggplot(data, aes(x=gdlfactor, y=totfatrte)) + 
+gdl.boxplot <- ggplot(data, aes(x=gdlfactor, y=totfatrte, color=gdlfactor)) + 
   geom_boxplot() +
   ggtitle('GDL vs Fatalities') +
   xlab('Graduated Driver\'s License') + ylab('Fatalities per 100k population')
+grid.arrange(gdl.cnt.t, gdl.boxplot, ncol=2, nrow=1)
 ```
+
+States began to enact Graduated Driver's License laws starting in the late 90s, and states that enact these laws tend to have lower fatality rates.
 
 **EDA Key Takeaways:**
 
@@ -536,11 +361,10 @@ ggplot(data, aes(x=gdlfactor, y=totfatrte)) +
 * States with primary and secondary seatbelt laws tended to have lower fatality rates, with primary seatbelt laws having the lowest fatality rates.
 * States with Graduated Driver's Licensing laws tended to have lower fatality rates, and more states have adopted these laws over time.
 
-2. How is the our dependent variable of interest *totfatrte* defined? What is the average of this variable in each of the years in the time period covered in this dataset? Estimate a linear regression model of *totfatrte* on a set of dummy variables for the years 1981 through 2004. What does this model explain? Describe what you find in this model. Did driving become safer over this period? Please provide a detailed explanation.
+##2. How is the our dependent variable of interest *totfatrte* defined? What is the average of this variable in each of the years in the time period covered in this dataset? Estimate a linear regression model of *totfatrte* on a set of dummy variables for the years 1981 through 2004. What does this model explain? Describe what you find in this model. Did driving become safer over this period? Please provide a detailed explanation.
 
-*totfatrte* is defined as "fatalities per 100,000 population"
+`totfatrte` is defined as "fatalities per 100,000 population"
 
-\textcolor{red}{Let's plot this over time. -RD}
 ```{r}
 #avg per year covered in data set
 ddply(data, .(year), summarize,  Total=mean(totfatrte))
@@ -554,9 +378,15 @@ mod1 <- lm(totfatrte ~ factor(year) , data=data)
 summary(mod1)
 ```
 
-The summary shows that the coefficients are estimated to be negative for each year after 1980, with the coefficients being statistically significant for all years except 1981. This corroborates the observations we made in the box plot of `totfatrte` over time. Does this mean that driving became safer over this time period? The answer to that question is multi-faceted - better driving habits, more/less speeding, frequency of drunk driving, car safety. \textcolor{red}{need to elaborate and reword this portion.}
+The summary shows that the coefficients are estimated to be negative for each year after 1980, with statistically significant for all years except 1981. This aligns with what we saw in the box plot of `totfatrte` over time in the EDA. 
 
-3. Expand your model in *Exercise 2* by adding variables *bac08, bac10, perse, sbprim, sbsecon, sl70plus, gdl, perc14_24, unem, vehicmilespc*, and perhaps *transformations of some or all of these variables*. Please explain carefully your rationale, which should be based on your EDA, behind any transformation you made. If no transformation is made, explain why transformation is not needed. How are the variables *bac8* and *bac10* defined? Interpret the coefficients on *bac8* and *bac10*. Do *per se laws* have a negative effect on the fatality rate? What about having a primary seat belt law? (Note that if a law was enacted sometime within a year the fraction of the year is recorded in place of the zero-one indicator.) 
+##3. Expand your model in *Exercise 2* by adding variables *bac08, bac10, perse, sbprim, sbsecon, sl70plus, gdl, perc14_24, unem, vehicmilespc*, and perhaps *transformations of some or all of these variables*. Please explain carefully your rationale, which should be based on your EDA, behind any transformation you made. If no transformation is made, explain why transformation is not needed. How are the variables *bac8* and *bac10* defined? Interpret the coefficients on *bac8* and *bac10*. Do *per se laws* have a negative effect on the fatality rate? What about having a primary seat belt law? (Note that if a law was enacted sometime within a year the fraction of the year is recorded in place of the zero-one indicator.) 
+
+We'll estimate this model:
+\textcolor{red}{Ryan to finish writing the latex for this.}
+$$
+totfatrte_{it} = hey
+$$
 
 \textcolor{blue}{I think we should log transform unem}
 \textcolor{red}{Should we include a latex rendering of the model we'll estimate? We may score extra points by doing that... }
@@ -573,7 +403,7 @@ data$gdlround = round(data$gdl)
 
 mod2 <- lm(totfatrte ~ factor(year) + bac08round + bac10round + 
              perseround + sbprimround + sbseconround + sl70plusround +
-             gdlround + perc14_24 + log(unem) + vehicmilespc, 
+             gdlround + perc14_24 + unem + vehicmilespc, 
            data=data)
 
 summary(mod2)
@@ -584,7 +414,7 @@ bac10 is blood alcohol limit .10
 
 This model indicates that in addition to years, blood alcohol limis of either .08 or .1 have a significant impact decreasing fatalities in car accidents. Further, it indicates that speed limits over 70, high unemployment, and high vehicle miles per capita have significant impact increasing fatalities from car accidents. 
 
-4. Reestimate the model from *Exercise 3* using a fixed effects (at the state level) model. How do the coefficients on *bac08, bac10, perse, and sbprim* compare with the pooled OLS estimates? Which set of estimates do you think is more reliable? What assumptions are needed in each of these models?  Are these assumptions reasonable in the current context?
+##4. Reestimate the model from *Exercise 3* using a fixed effects (at the state level) model. How do the coefficients on *bac08, bac10, perse, and sbprim* compare with the pooled OLS estimates? Which set of estimates do you think is more reliable? What assumptions are needed in each of these models?  Are these assumptions reasonable in the current context?
 
 ```{r}
 model.fe <- plm(totfatrte ~ factor(year) + bac08round + bac10round + 
@@ -600,8 +430,7 @@ summary(model.fe)
 - The fixed effect estimates are likely to be more reliable because the standard errors are uniformly lower when compared to those from the pooled OLS, indicating higher precision in the fixed effect model. In addition, the pooled OLS assumes there is independence between the observations and does not account for unobserved heterogeneity, which makes the fixed effect model more consistent compared to the pooled OLS. 
 - The fixed effect model assumes that the state fixed effects are time independent and the explanatory variables change over time with no perfect linear relationship between the variables. In comparison, the pooled OLS assumes that the response variable is normally distributed and errors are uncorrelated with the explanatory variables, which are valid assumptions based on the residual diagnostics. 
 
-
-5. Would you perfer to use a random effects model instead of the fixed effects model you built in *Exercise 4*? Please explain.
+##5. Would you perfer to use a random effects model instead of the fixed effects model you built in *Exercise 4*? Please explain.
 
 To determine whether random effects model should be used over the fixed effects model, we can conducts a Hausman test with the null hypothesis that the preferred model is random effects. 
 
@@ -616,24 +445,12 @@ phtest(model.fe, model.re)
 
 With the p-value < 2.2e-16, we can reject the null hypothesis that the random effects assumptions are correct and we would prefer to use the fixed effects model.
 
-6. Suppose that *vehicmilespc*, the number of miles driven per capita, increases by $1,000$. Using the FE estimates, what is the estimated effect on *totfatrte*? Please interpret the estimate.
+##6. Suppose that *vehicmilespc*, the number of miles driven per capita, increases by $1,000$. Using the FE estimates, what is the estimated effect on *totfatrte*? Please interpret the estimate.
 
 According to our fixed effect model, the coefficient for $vehicmilespc$ variable was 0.000951 fatalities/100k people per mile driven per capita. For all other things held equal, if, on average, there's an increase of 1,000 miles driven per capita, we would expect an increase of 0.951 (approximately 1) fatalities per 100k people. 
 
-7. If there is serial correlation or heteroskedasticity in the idiosyncratic errors of the model, what would be the consequences on the estimators and their standard errors?
+##7. If there is serial correlation or heteroskedasticity in the idiosyncratic errors of the model, what would be the consequences on the estimators and their standard errors?
 
 The fixed effects model assumes that the idiosyncratic errors are uncorrelated. If there is serial correlation in the model errors, the estimated variance will be biased which will result in underestimated standard errors and thus rending most statistical tests invalid. This would most likely commit Type I error, and reject the null hypothesis too easily. 
 
-Heteroskedasticity in the idiosyncratic errors would result in overstated standard errors and may commit Type II error. We may fail to reject the null hypothesis since significance of potentially valuable regressor will not be detected. 
-
-
-
-
-
-
-
-
-
-
-
-
+Heteroskedasticity in the idiosyncratic errors would result in overstated standard errors and may commit Type II error. We may fail to reject the null hypothesis since significance of potentially valuable regressor will not be detected.
