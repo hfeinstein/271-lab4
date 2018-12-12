@@ -186,7 +186,7 @@ grid.arrange(perc.ot, unem.ot, vehicpc.ot, ncol=2, nrow=2)
 
 `perc14_24` and `vehicmilespc` both show a strong trend over time, with `perc14_24` trending downward until stabilizing in the early 90s and `vehicmilespc` steadily trending upward. `unem` appears to show a very weak downward trend over the time period with cylical behavior (i.e. it's higher in times of recession). Both `perc14_24` and `vehicmilespc` have a state that appears to be a persistent outlier. In `perc14_24`, the outlier appears to diverge from the stabilizing trend in the early 90s. The outliers in `vehicmilespc` trend upward with the prevailing trend, so that's not particularly interesting.
 
-How do these variables correlate with `totfatrte`? We'll explore this by visualizing the absolute relationships between `totfatrte` and the relationships between the yearly first-differences. Let's look at scatter plots of the absolute variables first:
+How do these variables correlate with `totfatrte`? We'll explore this by visualizing the absolute relationships between `totfatrte'. Let's look at scatter plots of the absolute variables:
 ```{r, fig.height=4}
 vmpc.vs.tot <- ggplot(data, aes(x=vehicmilespc, y=totfatrte)) + 
   geom_point() +
@@ -283,12 +283,12 @@ agged.fat.byperseyr <- data %>%
   dplyr::summarize(totfatrte = mean(totfatrte),  # calculate average total fatality rates
                    count = n())
 perse.cnt.t <- ggplot(agged.fat.byperseyr, aes(x=year, y=count, color=persefactor)) +
-  geom_line() + ggtitle('State Count by perse, over time') +
+  geom_line() + ggtitle('State Count by Per se, over time') +
   ylab('Number of States')
 perse.boxplot <- ggplot(data, aes(x=persefactor, y=totfatrte, color=persefactor)) + 
   geom_boxplot() +
-  ggtitle('Per Se Law vs Fatalities') +
-  xlab('Per Se Law?') + ylab('Fatalities per 100k population')
+  ggtitle('Per se Law vs Fatalities') +
+  xlab('Per Se Law') + ylab('Fatalities per 100k population')
 grid.arrange(perse.cnt.t, perse.boxplot, ncol=2, nrow=1)
 ```
 
@@ -303,7 +303,7 @@ agged.fat.bysl <- data %>%
   dplyr::summarize(totfatrte = mean(totfatrte),
                    count = n())
 sl.cnt.t <- ggplot(agged.fat.bysl, aes(x=year, y=count, color=sl70plusfactor)) +
-  geom_line() + ggtitle('State Count by Speed Limit, over time') +
+  geom_line() + ggtitle('State Count by Speed Limit Trend') +
   ylab('Number of States')
 sl.boxplot <- ggplot(data, aes(x=sl70plusfactor, y=totfatrte, color=sl70plusfactor)) + 
   geom_boxplot() +
@@ -322,7 +322,7 @@ agged.fat.bysb <- data %>%
   dplyr::summarize(totfatrte = mean(totfatrte),
                    count = n())
 sb.cnt.t <- ggplot(agged.fat.bysb, aes(x=year, y=count, color=seatbeltfactor)) +
-  geom_line() + ggtitle('State Count by Seatbelt Law, over time') +
+  geom_line() + ggtitle('State Count by Seatbelt Law Trend') +
   ylab('Number of States')
 sb.boxplot <- ggplot(data, aes(x=seatbeltfactor, y=totfatrte, color=seatbeltfactor)) + 
   geom_boxplot() +
@@ -388,7 +388,10 @@ We chose not to perform any transformations, as the EDA did not show nonlinear r
 
 We'll estimate the pooled OLS model with the additional variables:
 $$
-totfatrte_{it} = \beta_0 + \sum_{k=1980}^{2004}\delta_{k}year_k +  \beta_1 bac08_{it} + \beta_2 bac10_{it} + \beta_3 perse_{it} + \beta_4 sbprim_{it} + \beta_5 sbsecon_{it} + \beta_6 sl70plus_{it} + \beta_7 gdl_{it} + \beta_8 perc14_24_{it} + \beta_9 unem_{it} + \beta_{10} vehicmlespc_{it} + u_{it}
+totfatrte_{it} = \beta_0 + \sum_{k=1980}^{2004}\delta_{k}year_k +  \beta_1 bac08_{it} + \beta_2 bac10_{it} + \beta_3 perse_{it} + \beta_4 sbprim_{it} + \beta_5 sbsecon_{it} + \beta_6 sl70plus_{it} +
+$$
+$$
+\beta_7 gdl_{it} + \beta_8 perc14_24_{it} + \beta_9 unem_{it} + \beta_{10} vehicmlespc_{it} + u_{it}
 $$
 
 ```{r}
@@ -408,7 +411,7 @@ mod2 <- lm(totfatrte ~ factor(year) + bac08round + bac10round +
 summary(mod2)
 ```
 
-This model indicates that in addition to years, laws with blood alcohol limis of either .08 or .1 have a significant impact decreasing fatalities in car accidents. Further, it indicates that laws that allow speed limits over 70, high unemployment, and high vehicle miles per capita have significant impact increasing fatalities from car accidents. 
+This model indicates that in addition to years, laws with blood alcohol limis of either .08 or .1 have a significant impact decreasing fatalities in car accidents. Further, it indicates that laws that allow speed limits over 70, high unemployment, and high vehicle miles per capita have significant impact increasing fatalities from car accidents. Per se laws show a negative impact at 0.05 significance.
 
 Let's plot the model residuals:
 ```{r, fig.height=3}
@@ -427,7 +430,10 @@ $$
 $$
 
 $$
-\widetilde{totfatrte}_{it} = \beta_0 + \sum_{k=1980}^{2004}\delta_{k}year_k +  \beta_1 \widetilde{bac08}_{it} + \beta_2 \widetilde{bac10}_{it} + \beta_3 \widetilde{perse}_{it} + \beta_4 \widetilde{sbprim}_{it} + \beta_5 \widetilde{sbsecon}_{it} + \beta_6 \widetilde{sl70plus}_{it} + \beta_7 \widetilde{gdl}_{it} + \beta_8 \widetilde{perc14_24}_{it} + \beta_9 \widetilde{unem}_{it} + \beta_{10} \widetilde{vehicmlespc}_{it} + \widetilde{u}_{it}
+\widetilde{totfatrte}_{it} = \beta_0 + \sum_{k=1980}^{2004}\delta_{k}year_k +  \beta_1 \widetilde{bac08}_{it} + \beta_2 \widetilde{bac10}_{it} + \beta_3 \widetilde{perse}_{it} + \beta_4 \widetilde{sbprim}_{it} + \beta_5 \widetilde{sbsecon}_{it} + \beta_6 \widetilde{sl70plus}_{it} +
+$$
+$$
+\beta_7 \widetilde{gdl}_{it} + \beta_8 \widetilde{perc14_24}_{it} + \beta_9 \widetilde{unem}_{it} + \beta_{10} \widetilde{vehicmlespc}_{it} + \widetilde{u}_{it}
 $$
 
 ```{r}
